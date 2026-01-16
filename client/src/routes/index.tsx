@@ -16,7 +16,6 @@ import WalkInOrder from '../components/admin/WalkInOrder';
 import CustomerMenuView from '../pages/customer/CustomerMenuView';
 import OrderTracking from '../pages/customer/OrderTracking';
 import AdminAddMenuView from '../pages/admin/AdminAddMenuView';
-import GenerateQr from '../pages/admin/GenerateQr';
 
 // Admin Pages
 
@@ -86,10 +85,10 @@ export const router = createBrowserRouter([
         path: 'orders',
         element: <AdminOrdersView />
       },
-      {
-        path: 'generate-qr',
-        element: <GenerateQr />
-      },
+    //   {
+    //     path: 'generate-qr',
+    //     element: <GenerateQr />
+    //   },
       {
         path: 'walk-in-customer',
         element: <AdminWalkInCustomer />

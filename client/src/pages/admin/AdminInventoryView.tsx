@@ -2,9 +2,7 @@
 // ADMIN INVENTORY VIEW
 // ============================================
 
-import React from "react";
 import { Plus, Package, Soup, Egg, Milk, Apple } from "lucide-react";
-import AdminSidebar from "../../components/admin/AdminSidebar";
 import ToggleSideBar from "../../components/admin/ToggleSideBar";
 
 // Dummy data for inventory
