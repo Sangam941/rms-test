@@ -4,6 +4,7 @@
 import React from "react";
 import { BarChart3, Home, LogOut, Package, ShoppingBag, User, Utensils, X } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
+import {useAuthStore} from '../../store/useAuthStore' // Correct import for store usage
 
 // ============================================
 const menuItems = [
@@ -24,6 +25,7 @@ interface AdminSidebarProps {
 const AdminSidebar: React.FC<AdminSidebarProps> = ({ sidebarOpen = false, setSidebarOpen = () => {} }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const {logout} = useAuthStore(); // get logout from zustand store
 
   return (
     <>
@@ -46,9 +48,9 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ sidebarOpen = false, setSid
                 <p className="text-xs text-slate-400">Dashboard</p>
               </div>
             </div>
-            <button onClick={() => setSidebarOpen(false)} className="lg:hidden">
+            <div onClick={() => setSidebarOpen(false)} className="lg:hidden">
               <X className="w-5 h-5" />
-            </button>
+            </div>
           </div>
         </div>
 
@@ -81,9 +83,10 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ sidebarOpen = false, setSid
             </div>
           </div>
           <button
-            onClick={() => {
-              navigate('/admin/login');
-              setSidebarOpen(false);
+            onClick={async () => {
+                await logout();
+                navigate('/admin/login');
+                setSidebarOpen(false);
             }}
             className="w-full flex items-center justify-center gap-2 px-4 py-2 text-red-400 hover:bg-slate-700 rounded-lg transition-all"
           >

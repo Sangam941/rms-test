@@ -7,7 +7,7 @@ const ToggleSideBar:React.FC = () => {
     const [sidebarOpen, setSidebarOpen] = useState(false)
     
     return (
-        <button
+        <div
             onClick={() => {
                 setSidebarOpen(!sidebarOpen)
             }}
@@ -15,7 +15,7 @@ const ToggleSideBar:React.FC = () => {
         >
             <Menu className="w-6 h-6" />
             <AdminSidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-        </button>
+        </div>
     )
 }
 

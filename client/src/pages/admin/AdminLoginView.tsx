@@ -11,8 +11,8 @@ const AdminLoginView: React.FC = () => {
   const location = useLocation();
   const { login } = useAuthStore();
 
-  const [email, setEmail] = useState('admin@rms.com');
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -80,12 +80,6 @@ const AdminLoginView: React.FC = () => {
             {loading ? 'Signing in...' : 'Sign In'}
           </Button>
         </form>
-
-        <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600">
-            Demo Credentials: admin@rms.com / admin123
-          </p>
-        </div>
       </Card>
     </div>
   );
