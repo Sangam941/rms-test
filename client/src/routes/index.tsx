@@ -1,0 +1,124 @@
+import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { AdminLayout } from '../layouts/AdminLayout';
+
+// Customer Pages
+import { OrderSuccess } from '../pages/customer/OrderSuccess';
+import AdminDashboardView from '../pages/admin/AdminDashboardView';
+import AdminOrdersView from '../pages/admin/AdminOrdersView';
+import CreditLedger from '../pages/admin/CreditLedger';
+import InventoryManagement from '../pages/admin/InventoryManagement';
+import TableSelectionView from '../components/common/TableSelectionView';
+import AdminLoginView from '../pages/admin/AdminLoginView';
+import { ProtectedRoute } from '../layouts/ProtectedRoute';
+import AdminMenuView from '../pages/admin/AdminMenuView';
+import AdminWalkInCustomer from '../components/admin/AdminWalkInCustomer';
+import WalkInOrder from '../components/admin/WalkInOrder';
+import CustomerMenuView from '../pages/customer/CustomerMenuView';
+import OrderTracking from '../pages/customer/OrderTracking';
+import AdminAddMenuView from '../pages/admin/AdminAddMenuView';
+
+// Admin Pages
+
+export const router = createBrowserRouter([
+  // Customer Routes
+  {
+    path: '/menu',
+    element: <CustomerMenuView />
+  },
+  {
+    path: '/order-success/:orderId',
+    element: <OrderSuccess />
+  },
+  {
+    path: '/order-tracking/:orderId',
+    element: <OrderTracking />
+  },
+  {
+    path: '/table-selection',
+    element: <TableSelectionView />
+  },
+  {
+    path: '/order-success/:orderId',
+    element: <OrderSuccess />
+  },
+//   {
+//     path: '/order-tracking/:orderId',
+//     element: <OrderTracking />
+//   },
+
+  // Admin Login (Public)
+  {
+    path: '/admin/login',
+    element: <AdminLoginView />
+  },
+
+  // Admin Routes (Protected)
+  {
+    path: '/admin',
+    element: (
+      <ProtectedRoute>
+        <AdminLayout />
+      </ProtectedRoute>
+    ),
+    children: [
+      {
+        index: true,
+        element: <Navigate to="/admin/dashboard" replace />
+      },
+      {
+        path: 'dashboard',
+        element: <AdminDashboardView />
+      },
+      {
+        path: 'menu',
+        element: <AdminMenuView />
+      },
+      {
+        path: 'menu/add',
+        element: <AdminAddMenuView />
+      },
+      {
+        path: 'walk-in-order',
+        element: <WalkInOrder />
+      },
+    //   {
+    //     path: 'menu/add',
+    //     element: <AddEditMenu />
+    //   },
+    //   {
+    //     path: 'menu/edit/:id',
+    //     element: <AddEditMenu />
+    //   },
+      {
+        path: 'orders',
+        element: <AdminOrdersView />
+      },
+      {
+        path: 'walk-in-customer',
+        element: <AdminWalkInCustomer />
+      },
+      {
+        path: 'inventory',
+        element: <InventoryManagement />
+      },
+      {
+        path: 'credit',
+        element: <CreditLedger />
+      },
+    //   {
+    //     path: 'customers/:id',
+    //     element: <CustomerDetails />
+    //   },
+    //   {
+    //     path: 'reports',
+    //     element: <Reports />
+    //   }
+    ]
+  },
+
+  // 404 - Catch all
+  {
+    path: '*',
+    element: <Navigate to="/" replace />
+  }
+]);

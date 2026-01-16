@@ -1,0 +1,316 @@
+import React, { useState, useRef } from "react";
+import { Upload, Check } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+
+const CATEGORIES = [
+  "Starters",
+  "Main Course",
+  "Desserts",
+  "Beverages",
+];
+
+const AdminAddMenuView = () => {
+  const navigate = useNavigate();
+
+  // ===== STATE =====
+  const [name, setName] = useState("");
+  const [price, setPrice] = useState<number | "">("");
+  const [category, setCategory] = useState("");
+  const [description, setDescription] = useState("");
+  const [isVeg, setIsVeg] = useState(true);
+  const [isAvailable, setIsAvailable] = useState(true);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [priceError, setPriceError] = useState<string>("");
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // ===== IMAGE HANDLER =====
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImageFile(file);
+    setPreview(URL.createObjectURL(file));
+  };
+
+  // ===== PRICE HANDLER =====
+  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Accept blank input
+    if (value === "") {
+      setPrice("");
+      setPriceError("");
+      return;
+    }
+    const num = Number(value);
+    if (isNaN(num) || num < 0) {
+      setPrice(num);
+      setPriceError("Price cannot be negative");
+    } else {
+      setPrice(num);
+      setPriceError("");
+    }
+  };
+
+  // ===== SUBMIT =====
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!name || price === "" || !category || !imageFile) {
+      alert("Please fill all required fields");
+      return;
+    }
+
+    if (typeof price === "number" && price < 0) {
+      alert("Price cannot be negative");
+      return;
+    }
+
+    if (priceError) {
+      alert("Please correct the price before submitting.");
+      return;
+    }
+
+    const payload = {
+      name,
+      price: Number(price),
+      category,
+      description,
+      isVeg,
+      isAvailable,
+      image: preview, // later replace with backend upload URL
+    };
+
+    console.log("MENU ITEM:", payload);
+
+    // TODO: API call here
+    // await createMenuItem(payload)
+
+    navigate("/admin/menu");
+  };
+
+  // Helper for orange *
+  const RequiredAsterisk = () => (
+    <span className="text-orange-600 font-bold ml-1">*</span>
+  );
+
+  // Custom orange checkbox (used for veg/non-veg)
+  const OrangeCheckbox = ({
+    checked,
+    onChange,
+    label,
+    id,
+  }: {
+    checked: boolean;
+    onChange: () => void;
+    label: string;
+    id: string;
+  }) => (
+    <label htmlFor={id} className="flex items-center gap-2 cursor-pointer select-none">
+      <span
+        className={`relative inline-flex items-center justify-center w-5 h-5 border-2 rounded-md transition-colors
+        ${checked ? 'border-orange-600 bg-orange-600' : 'border-gray-300 bg-white'} mr-1`}
+        style={{ transition: "background 0.15s, border 0.15s" }}
+      >
+        <input
+          type="checkbox"
+          checked={checked}
+          id={id}
+          onChange={onChange}
+          className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
+        />
+        {checked && (
+          <Check className="w-4 h-4 text-white pointer-events-none" strokeWidth={3} />
+        )}
+      </span>
+      <span>{label}</span>
+    </label>
+  );
+
+  return (
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* HEADER */}
+        <header className="bg-white border-b px-4 lg:px-8 py-4 flex items-center gap-4">
+          <button
+            onClick={() => navigate("/admin/menu")}
+            className="text-gray-600 hover:text-gray-900"
+          >
+            ← Back
+          </button>
+          <h1 className="text-xl lg:text-2xl font-bold">Add New Menu Item</h1>
+        </header>
+
+        {/* CONTENT */}
+        <main className="flex-1 overflow-y-auto p-4 lg:p-8">
+          <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-sm p-6 lg:p-8">
+            <form className="space-y-6" onSubmit={handleSubmit}>
+
+              {/* IMAGE UPLOAD AT TOP */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Upload Image
+                  <RequiredAsterisk />
+                </label>
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+
+                {preview ? (
+                  <img
+                    src={preview}
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-28 h-28 rounded-lg object-cover border cursor-pointer border-orange-600"
+                  />
+                ) : (
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-28 h-28 flex items-center justify-center border-2 border-orange-600 rounded-lg cursor-pointer hover:bg-orange-50 transition-colors"
+                  >
+                    <Upload className="text-orange-400 w-10 h-10" />
+                  </div>
+                )}
+              </div>
+
+              {/* NAME + PRICE */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Item Name
+                    <RequiredAsterisk />
+                  </label>
+                  <input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    type="text"
+                    className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Price (Rs.)
+                    <RequiredAsterisk />
+                  </label>
+                  <input
+                    value={price}
+                    min={0}
+                    onChange={handlePriceChange}
+                    type="number"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 ${priceError ? 'border-red-500' : ''}`}
+                  />
+                  {priceError && (
+                    <span className="text-xs text-red-600 mt-1 block">{priceError}</span>
+                  )}
+                </div>
+              </div>
+
+              {/* CATEGORY */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Category
+                  <RequiredAsterisk />
+                </label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500"
+                >
+                  <option value="">Select a category</option>
+                  {CATEGORIES.map((cat) => (
+                    <option key={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* DESCRIPTION */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Description
+                </label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={4}
+                  className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
+
+              {/* FOOD TYPE */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  Food Type
+                  <RequiredAsterisk />
+                </label>
+                <div className="flex gap-6">
+                  <OrangeCheckbox
+                    id="veg-check"
+                    checked={isVeg}
+                    onChange={() => setIsVeg(true)}
+                    label="🟢 Vegetarian"
+                  />
+                  <OrangeCheckbox
+                    id="nonveg-check"
+                    checked={!isVeg}
+                    onChange={() => setIsVeg(false)}
+                    label="🔴 Non-Vegetarian"
+                  />
+                </div>
+              </div>
+
+              {/* IS AVAILABLE - checkbox for "Available" without title or Yes/No */}
+              <div>
+                <div className="flex items-center gap-2">
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <span
+                      className={`relative inline-flex items-center justify-center w-5 h-5 border-2 rounded-md transition-colors
+                      ${isAvailable ? 'border-orange-600 bg-orange-600' : 'border-gray-300 bg-white'} mr-1`}
+                      style={{ transition: "background 0.15s, border 0.15s" }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isAvailable}
+                        id="available-checkbox"
+                        onChange={() => setIsAvailable(!isAvailable)}
+                        className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
+                      />
+                      {isAvailable && (
+                        <Check className="w-4 h-4 text-white pointer-events-none" strokeWidth={3} />
+                      )}
+                    </span>
+                    <span>Available</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* BUTTONS */}
+              <div className="flex gap-4 pt-6">
+                <button
+                  type="submit"
+                  className="flex-1 bg-orange-600 text-white py-3 rounded-lg font-bold hover:bg-orange-700"
+                >
+                  Save Item
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate("/admin/menu")}
+                  className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-bold hover:bg-gray-300"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+};
+
+export default AdminAddMenuView;
