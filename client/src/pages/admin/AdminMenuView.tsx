@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Plus, Search, Trash2, ToggleLeft, ToggleRight } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { Plus, Search, Trash2, ToggleLeft, ToggleRight, Star } from "lucide-react";
 import ToggleSideBar from "../../components/admin/ToggleSideBar";
 import EditMenuItemModal from "../../components/admin/EditMenuItemModal";
 import type { MenuItem } from "../../types/menu";
@@ -16,10 +16,15 @@ const AdminMenuView: React.FC = () => {
     searchQuery,
     setSearchQuery,
     setSelectedCategory,
-    updateMenuItem,
     deleteMenuItem,
     toggleAvailability,
+    fetchAll,
+    toggleSpecial,
   } = useMenuStore();
+
+  useEffect(() => {
+    fetchAll()
+  }, [])
 
   const menuItems = getFilteredItems();
 
@@ -63,9 +68,10 @@ const AdminMenuView: React.FC = () => {
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
           >
+            <option value="All">All</option>
             {categories.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
+              <option key={cat.categoryId} value={cat.categoryName}>
+                {cat.categoryName}
               </option>
             ))}
           </select>
@@ -86,7 +92,24 @@ const AdminMenuView: React.FC = () => {
                       : item.image}
                   </div>
 
-                  <div>
+                  <div className="flex-1 relative">
+                    {/* Star Icon for Specials (Toggleable) */}
+                    <button
+                      type="button"
+                      aria-label={item.isSpecial ? "Unmark as Special" : "Mark as Special"}
+                      className="absolute -left-6 top-1 focus:outline-none active:scale-95"
+                      onClick={() => toggleSpecial(item.id, !item.isSpecial)}
+                      style={{ background: "none", border: "none", padding: 0, margin: 0, cursor: "pointer" }}
+                    >
+                      <Star
+                        className="w-5 h-5"
+                        color="#fbbf24"
+                        stroke="#fbbf24"
+                        fill={item.isSpecial ? "#facc15" : "none"}
+                        style={item.isSpecial ? { filter: "drop-shadow(0 1px 1px #eab30890)" } : undefined}
+                        aria-hidden="true"
+                      />
+                    </button>
                     <div className="flex items-center gap-2">
                       <h3 className="font-bold text-lg">{item.name}</h3>
                       <span>{item.isVeg ? "🟢" : "🔴"}</span>
@@ -102,7 +125,7 @@ const AdminMenuView: React.FC = () => {
               {/* AVAILABILITY */}
               <div className="flex items-center justify-between mb-3 pb-3 border-b">
                 <span className="text-sm font-semibold text-gray-700">Available</span>
-                <button onClick={() => toggleAvailability(item.id)}>
+                <button onClick={() => toggleAvailability(item.id, !item.isAvailable)}>
                   {item.isAvailable ? (
                     <ToggleRight className="w-8 h-8 text-green-600" />
                   ) : (
@@ -121,7 +144,15 @@ const AdminMenuView: React.FC = () => {
                 </button>
 
                 <button
-                  onClick={() => deleteMenuItem(item.id)}
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        `Are you sure you want to delete "${item.name}" from the menu? This action cannot be undone.`
+                      )
+                    ) {
+                      deleteMenuItem(item.id);
+                    }
+                  }}
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 font-semibold"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -144,10 +175,6 @@ const AdminMenuView: React.FC = () => {
         isOpen={!!editItem}
         item={editItem}
         onClose={() => setEditItem(null)}
-        onUpdateItem={(item) => {
-          updateMenuItem(item);
-          setEditItem(null);
-        }}
       />
     </div>
   );

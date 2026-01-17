@@ -26,6 +26,7 @@ interface OrderStore {
 const DUMMY_ORDERS: Order[] = [
   {
     id: '1',
+    orderNumber: 'ORD001',
     tableNumber: 'T1',
     items: [
       {
@@ -34,9 +35,10 @@ const DUMMY_ORDERS: Order[] = [
         quantity: 1,
         price: 180,
         category: 'Noodles',
-        image: '',
+        image: '🍜',
         isVeg: true,
-        isAvailable: true
+        isAvailable: true,
+        isSpecial: false,
       },
       {
         id: 'drink-1',
@@ -44,49 +46,35 @@ const DUMMY_ORDERS: Order[] = [
         quantity: 2,
         price: 60,
         category: 'Beverage',
-        image: '',
+        image: '🥤',
         isVeg: true,
-        isAvailable: true
+        isAvailable: true,
+        isSpecial: false,
       },
-      {
-        id: 'food-2',
-        name: 'Momo',
-        quantity: 1,
-        price: 150,
-        category: 'Snacks',
-        image: '',
-        isVeg: true,
-        isAvailable: true
-      }
     ],
-    totalAmount: 450,
+    totalAmount: 300,
+    finalAmount: 300,
+    paymentStatus: 'unpaid',
     status: 'pending',
-    createdAt: new Date(Date.now() - 600000),
-    customerName: 'Ram Sharma'
+    createdAt: new Date(Date.now() - 10 * 60 * 1000),
+    customerName: 'Ram Sharma',
   },
+
   {
     id: '2',
-    tableNumber: 'C2',
+    orderNumber: 'ORD002',
+    tableNumber: 'T2',
     items: [
       {
-        id: 'food-3',
-        name: 'Chicken Burger',
+        id: 'food-2',
+        name: 'Chicken Momo',
         quantity: 2,
-        price: 250,
-        category: 'Burger',
-        image: '',
+        price: 150,
+        category: 'Momo',
+        image: '🥟',
         isVeg: false,
-        isAvailable: true
-      },
-      {
-        id: 'food-4',
-        name: 'Fries',
-        quantity: 1,
-        price: 80,
-        category: 'Snacks',
-        image: '',
-        isVeg: true,
-        isAvailable: true
+        isAvailable: true,
+        isSpecial: false,
       },
       {
         id: 'drink-2',
@@ -94,137 +82,129 @@ const DUMMY_ORDERS: Order[] = [
         quantity: 1,
         price: 60,
         category: 'Beverage',
-        image: '',
+        image: '🥤',
         isVeg: true,
-        isAvailable: true
+        isAvailable: true,
+        isSpecial: false,
       },
-      {
-        id: 'drink-3',
-        name: 'Coffee',
-        quantity: 1,
-        price: 140,
-        category: 'Beverage',
-        image: '',
-        isVeg: true,
-        isAvailable: true
-      }
     ],
-    totalAmount: 780,
+    totalAmount: 360,
+    finalAmount: 360,
+    paymentStatus: 'paid',
     status: 'preparing',
-    createdAt: new Date(Date.now() - 1500000),
-    customerName: 'Sita Thapa'
+    createdAt: new Date(Date.now() - 25 * 60 * 1000),
+    customerName: 'Sita Thapa',
   },
+
   {
     id: '3',
+    orderNumber: 'ORD003',
     tableNumber: 'T3',
     items: [
       {
-        id: 'food-5',
-        name: 'Egg Roll',
-        quantity: 1,
-        price: 120,
+        id: 'food-3',
+        name: 'Veg Spring Roll',
+        quantity: 2,
+        price: 130,
         category: 'Snacks',
-        image: '',
-        isVeg: false,
-        isAvailable: true
+        image: '🌯',
+        isVeg: true,
+        isAvailable: true,
+        isSpecial: false,
       },
       {
-        id: 'drink-4',
+        id: 'drink-3',
         name: 'Tea',
         quantity: 2,
         price: 65,
         category: 'Beverage',
-        image: '',
+        image: '🍵',
         isVeg: true,
-        isAvailable: true
-      }
+        isAvailable: true,
+        isSpecial: false,
+      },
     ],
-    totalAmount: 250,
+    totalAmount: 390,
+    finalAmount: 390,
+    paymentStatus: 'paid',
     status: 'completed',
-    createdAt: new Date(Date.now() - 2700000),
-    customerName: 'Hari Poudel'
+    createdAt: new Date(Date.now() - 60 * 60 * 1000),
+    customerName: 'Hari Poudel',
   },
+
   {
     id: '4',
+    orderNumber: 'ORD004',
     tableNumber: 'T5',
     items: [
       {
-        id: 'food-6',
+        id: 'food-4',
         name: 'Chicken Pizza',
         quantity: 1,
         price: 550,
         category: 'Pizza',
-        image: '',
+        image: '🍕',
         isVeg: false,
-        isAvailable: true
+        isAvailable: true,
+        isSpecial: true,
       },
       {
-        id: 'drink-5',
+        id: 'drink-4',
         name: 'Fanta',
         quantity: 2,
         price: 70,
         category: 'Beverage',
-        image: '',
+        image: '🥤',
         isVeg: true,
-        isAvailable: true
+        isAvailable: true,
+        isSpecial: false,
       },
-      {
-        id: 'food-7',
-        name: 'Ice Cream',
-        quantity: 2,
-        price: 115,
-        category: 'Dessert',
-        image: '',
-        isVeg: true,
-        isAvailable: true
-      }
     ],
-    totalAmount: 920,
-    status: 'preparing',
-    createdAt: new Date(Date.now() - 1200000),
-    customerName: 'Gita Rai'
+    totalAmount: 690,
+    finalAmount: 690,
+    paymentStatus: 'unpaid',
+    status: 'pending',
+    createdAt: new Date(Date.now() - 15 * 60 * 1000),
+    customerName: 'Gita Rai',
   },
+
   {
     id: '5',
-    tableNumber: 'C1',
+    orderNumber: 'ORD005',
+    tableNumber: 'WALK-IN',
     items: [
       {
-        id: 'food-8',
+        id: 'food-5',
         name: 'Pasta',
-        quantity: 2,
+        quantity: 1,
         price: 190,
         category: 'Pasta',
-        image: '',
+        image: '🍝',
         isVeg: true,
-        isAvailable: true
+        isAvailable: true,
+        isSpecial: false,
       },
       {
-        id: 'drink-6',
-        name: 'Lassi',
-        quantity: 1,
-        price: 70,
-        category: 'Beverage',
-        image: '',
-        isVeg: true,
-        isAvailable: true
-      },
-      {
-        id: 'food-9',
+        id: 'food-6',
         name: 'Samosa',
         quantity: 2,
-        price: 100,
+        price: 50,
         category: 'Snacks',
-        image: '',
+        image: '🥟',
         isVeg: true,
-        isAvailable: true
-      }
+        isAvailable: true,
+        isSpecial: true,
+      },
     ],
-    totalAmount: 650,
-    status: 'pending',
-    createdAt: new Date(Date.now() - 300000),
-    customerName: 'Krishna KC'
+    totalAmount: 290,
+    finalAmount: 290,
+    paymentStatus: 'paid',
+    status: 'completed',
+    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+    customerName: 'Krishna KC',
   },
 ];
+
 
 export const useOrderStore = create<OrderStore>((set, get) => ({
   orders: DUMMY_ORDERS,

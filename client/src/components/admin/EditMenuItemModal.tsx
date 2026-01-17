@@ -1,31 +1,40 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Upload, X } from "lucide-react";
 import type { MenuItem } from "../../types/menu";
-
-const CATEGORY_OPTIONS = ["Starters", "Main Course", "Desserts", "Beverages", "Veg", "Non-Veg"];
+import { useMenuStore } from "../../store/useMenuStore";
 
 type EditMenuItemModalProps = {
   isOpen: boolean;
   onClose: () => void;
   item: MenuItem | null;
-  onUpdateItem: (item: MenuItem) => void;
 };
 
 const EditMenuItemModal: React.FC<EditMenuItemModalProps> = ({
   isOpen,
   onClose,
   item,
-  onUpdateItem,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Store updateMenuItem
+  const {updateMenuItem} = useMenuStore();
+  // Obtain categories from store (and filter for name uniqueness)
+  const categories = useMenuStore((state) => state.categories);
+
+  // A single flat list of category names (strings)
+  const categoryNames = Array.from(
+    new Set(categories.map((cat: any) => cat.categoryName))
+  );
+
+  // State for all fields
   const [name, setName] = useState("");
-  const [category, setCategory] = useState(CATEGORY_OPTIONS[0]);
+  const [category, setCategory] = useState(categoryNames[0] || "");
   const [price, setPrice] = useState<number | "">("");
   const [isVeg, setIsVeg] = useState(true);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [isAvailable, setIsAvailable] = useState(true);
+  const [isSpecial, setIsSpecial] = useState(false);
 
   /** Load existing item values */
   useEffect(() => {
@@ -33,12 +42,16 @@ const EditMenuItemModal: React.FC<EditMenuItemModalProps> = ({
       setName(item.name);
       setCategory(item.category);
       setPrice(item.price);
-      setIsVeg(item.isVeg);
-      setPreview(item.image);
+      setIsVeg(item.isVeg ?? true);
+      setPreview(item.image ?? null);
       setIsAvailable(item.isAvailable);
+      setIsSpecial(item.isSpecial);
       setImageFile(null);
+    } else if (categoryNames.length > 0) {
+      setCategory(categoryNames[0]);
     }
-  }, [item]);
+    // eslint-disable-next-line
+  }, [item, categoryNames.join(",")]);
 
   if (!isOpen || !item) return null;
 
@@ -54,21 +67,28 @@ const EditMenuItemModal: React.FC<EditMenuItemModalProps> = ({
     fileInputRef.current?.click();
   };
 
-  const handleUpdate = () => {
-    if (!name || !category || !price || !preview) {
-      alert("Please fill all fields");
-      return;
+  const handleUpdate = async () => {
+    // if (!name || !category || price === "" || (preview === null && !imageFile)) {
+    //   alert("Please fill all fields");
+    //   return;
+    // }
+
+    // Construct FormData for updating in the store
+    const formData = new FormData();
+    formData.append("name", name);
+    formData.append("category", category);
+    formData.append("price", String(price));
+    formData.append("isVeg", isVeg ? "true" : "false");
+    formData.append("isAvailable", isAvailable ? "true" : "false");
+    formData.append("isSpecial", isSpecial ? "true" : "false");
+
+    // Only append new file (if changed)
+    if (imageFile) {
+      formData.append("image", imageFile);
     }
 
-    onUpdateItem({
-      ...item,
-      name,
-      category,
-      price: Number(price),
-      isVeg,
-      image: preview,
-      isAvailable,
-    });
+    // Update in store: store expects (id, formData)
+    await updateMenuItem(item.id, formData);
 
     onClose();
   };
@@ -82,7 +102,6 @@ const EditMenuItemModal: React.FC<EditMenuItemModalProps> = ({
         >
           <X className="w-5 h-5" />
         </button>
-
         <h2 className="text-xl font-bold mb-4">Edit Menu Item</h2>
 
         <div className="flex flex-col gap-3">
@@ -100,11 +119,19 @@ const EditMenuItemModal: React.FC<EditMenuItemModalProps> = ({
             onChange={(e) => setCategory(e.target.value)}
             className="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-orange-500 outline-none bg-white"
           >
-            {CATEGORY_OPTIONS.map((cat) => (
+            {categoryNames.map((cat) => (
               <option key={cat} value={cat}>
                 {cat}
               </option>
             ))}
+            {
+              // Fallback: if item's current category is not in the list, show it at the top
+              category && !categoryNames.includes(category) ? (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ) : null
+            }
           </select>
 
           {/* Price */}
@@ -162,6 +189,17 @@ const EditMenuItemModal: React.FC<EditMenuItemModalProps> = ({
               type="checkbox"
               checked={isAvailable}
               onChange={(e) => setIsAvailable(e.target.checked)}
+              className="w-5 h-5 accent-orange-600"
+            />
+          </div>
+
+          {/* Special */}
+          <div className="flex items-center gap-2">
+            <label className="font-medium">Special</label>
+            <input
+              type="checkbox"
+              checked={isSpecial}
+              onChange={(e) => setIsSpecial(e.target.checked)}
               className="w-5 h-5 accent-orange-600"
             />
           </div>

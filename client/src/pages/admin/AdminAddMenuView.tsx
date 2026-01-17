@@ -1,6 +1,8 @@
 import React, { useState, useRef } from "react";
 import { Upload, Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useMenuStore } from "../../store/useMenuStore";
+import toast from "react-hot-toast";
 
 const CATEGORIES = [
   "Starters",
@@ -17,13 +19,17 @@ const AdminAddMenuView = () => {
   const [price, setPrice] = useState<number | "">("");
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
-  const [isVeg, setIsVeg] = useState(true);
+  // const [isVeg, setIsVeg] = useState(true);
+  const [isSpecial, setIsSpecial] = useState(false);
   const [isAvailable, setIsAvailable] = useState(true);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [priceError, setPriceError] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const {addItem} = useMenuStore()
 
   // ===== IMAGE HANDLER =====
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -53,8 +59,8 @@ const AdminAddMenuView = () => {
     }
   };
 
-  // ===== SUBMIT =====
-  const handleSubmit = (e: React.FormEvent) => {
+  // ===== SUBMIT with API =====
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!name || price === "" || !category || !imageFile) {
@@ -72,22 +78,30 @@ const AdminAddMenuView = () => {
       return;
     }
 
-    const payload = {
-      name,
-      price: Number(price),
-      category,
-      description,
-      isVeg,
-      isAvailable,
-      image: preview, // later replace with backend upload URL
-    };
+    setIsSubmitting(true);
 
-    console.log("MENU ITEM:", payload);
+    try {
+      // Construct multipart form data for possible file upload
+      const formData = new FormData();
+      formData.append("name", name);
+      formData.append("price", String(price));
+      formData.append("category", category);
+      formData.append("description", description);
+      // formData.append("isVeg", isVeg ? "true" : "false");
+      formData.append("isAvailable", isAvailable ? "true" : "false");
+      formData.append("isSpecial", isSpecial ? "true" : "false");
 
-    // TODO: API call here
-    // await createMenuItem(payload)
+      if (imageFile) formData.append("image", imageFile);
 
-    navigate("/admin/menu");
+      await addItem(formData)
+
+      navigate("/admin/menu");
+    } catch (error: any) {
+      // You may want to use a toast rather than alert!
+      toast.error(error?.message || "Failed to add menu item.");  
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Helper for orange *
@@ -136,6 +150,8 @@ const AdminAddMenuView = () => {
           <button
             onClick={() => navigate("/admin/menu")}
             className="text-gray-600 hover:text-gray-900"
+            type="button"
+            disabled={isSubmitting}
           >
             ← Back
           </button>
@@ -160,17 +176,22 @@ const AdminAddMenuView = () => {
                   accept="image/*"
                   onChange={handleFileChange}
                   className="hidden"
+                  disabled={isSubmitting}
                 />
 
                 {preview ? (
                   <img
                     src={preview}
-                    onClick={() => fileInputRef.current?.click()}
+                    onClick={() => {
+                      if (!isSubmitting) fileInputRef.current?.click();
+                    }}
                     className="w-28 h-28 rounded-lg object-cover border cursor-pointer border-orange-600"
                   />
                 ) : (
                   <div
-                    onClick={() => fileInputRef.current?.click()}
+                    onClick={() => {
+                      if (!isSubmitting) fileInputRef.current?.click();
+                    }}
                     className="w-28 h-28 flex items-center justify-center border-2 border-orange-600 rounded-lg cursor-pointer hover:bg-orange-50 transition-colors"
                   >
                     <Upload className="text-orange-400 w-10 h-10" />
@@ -190,6 +211,7 @@ const AdminAddMenuView = () => {
                     onChange={(e) => setName(e.target.value)}
                     type="text"
                     className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500"
+                    disabled={isSubmitting}
                   />
                 </div>
 
@@ -204,6 +226,7 @@ const AdminAddMenuView = () => {
                     onChange={handlePriceChange}
                     type="number"
                     className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 ${priceError ? 'border-red-500' : ''}`}
+                    disabled={isSubmitting}
                   />
                   {priceError && (
                     <span className="text-xs text-red-600 mt-1 block">{priceError}</span>
@@ -221,6 +244,7 @@ const AdminAddMenuView = () => {
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
                   className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500"
+                  disabled={isSubmitting}
                 >
                   <option value="">Select a category</option>
                   {CATEGORIES.map((cat) => (
@@ -239,11 +263,12 @@ const AdminAddMenuView = () => {
                   onChange={(e) => setDescription(e.target.value)}
                   rows={4}
                   className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500"
+                  disabled={isSubmitting}
                 />
               </div>
 
               {/* FOOD TYPE */}
-              <div>
+              {/* <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-3">
                   Food Type
                   <RequiredAsterisk />
@@ -252,17 +277,17 @@ const AdminAddMenuView = () => {
                   <OrangeCheckbox
                     id="veg-check"
                     checked={isVeg}
-                    onChange={() => setIsVeg(true)}
+                    onChange={() => !isSubmitting && setIsVeg(true)}
                     label="🟢 Vegetarian"
                   />
                   <OrangeCheckbox
                     id="nonveg-check"
                     checked={!isVeg}
-                    onChange={() => setIsVeg(false)}
+                    onChange={() => !isSubmitting && setIsVeg(false)}
                     label="🔴 Non-Vegetarian"
                   />
                 </div>
-              </div>
+              </div> */}
 
               {/* IS AVAILABLE - checkbox for "Available" without title or Yes/No */}
               <div>
@@ -277,8 +302,9 @@ const AdminAddMenuView = () => {
                         type="checkbox"
                         checked={isAvailable}
                         id="available-checkbox"
-                        onChange={() => setIsAvailable(!isAvailable)}
+                        onChange={() => !isSubmitting && setIsAvailable(!isAvailable)}
                         className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
+                        disabled={isSubmitting}
                       />
                       {isAvailable && (
                         <Check className="w-4 h-4 text-white pointer-events-none" strokeWidth={3} />
@@ -289,18 +315,47 @@ const AdminAddMenuView = () => {
                 </div>
               </div>
 
+              {/* SPECIAL CATEGORY */}
+              <div>
+                <div className="flex items-center gap-2">
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <span
+                      className={`relative inline-flex items-center justify-center w-5 h-5 border-2 rounded-md transition-colors
+        ${isSpecial ? 'border-orange-600 bg-orange-600' : 'border-gray-300 bg-white'} mr-1`}
+                      style={{ transition: "background 0.15s, border 0.15s" }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSpecial}
+                        id="special-checkbox"
+                        onChange={() => !isSubmitting && setIsSpecial(!isSpecial)}
+                        className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
+                        disabled={isSubmitting}
+                      />
+                      {isSpecial && (
+                        <Check className="w-4 h-4 text-white pointer-events-none" strokeWidth={3} />
+                      )}
+                    </span>
+                    <span>Special Category</span>
+                  </label>
+                </div>
+              </div>
+
+
               {/* BUTTONS */}
               <div className="flex gap-4 pt-6">
                 <button
                   type="submit"
                   className="flex-1 bg-orange-600 text-white py-3 rounded-lg font-bold hover:bg-orange-700"
+                  disabled={isSubmitting}
                 >
-                  Save Item
+                  {isSubmitting ? "Saving..." : "Save Item"}
                 </button>
                 <button
                   type="button"
-                  onClick={() => navigate("/admin/menu")}
+                  onClick={() => !isSubmitting && navigate("/admin/menu")}
                   className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-bold hover:bg-gray-300"
+                  disabled={isSubmitting}
                 >
                   Cancel
                 </button>

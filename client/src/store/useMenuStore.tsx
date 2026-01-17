@@ -1,103 +1,59 @@
 import { create } from "zustand";
 import type { MenuItem } from "../types/menu";
+import {
+  fetchMenuItems,
+  addMenuItem,
+  updateMenuItem,
+  deleteMenuItem,
+  updateMenuItemAvailability as toggleAvailabilityApi,
+  toggleSpecial as toggleSpecialApi,
+} from "../api/menu";
+import toast from "react-hot-toast";
 
 interface MenuStore {
-  items: MenuItem[];
-  categories: string[];
+  categories: any[]; // original category structure from backend
+  items: MenuItem[]; // flattened items for search/filter
   selectedCategory: string;
   searchQuery: string;
 
   setSelectedCategory: (category: string) => void;
   setSearchQuery: (query: string) => void;
 
-  addItem: (item: Omit<MenuItem, "id">) => void;
-  updateMenuItem: (item: MenuItem) => void;
-  deleteMenuItem: (id: string) => void;
-  toggleAvailability: (id: string) => void;
+  fetchAll: () => Promise<void>;
+  addItem: (formData: FormData) => Promise<void>;
+  updateMenuItem: (id: string, formData: FormData) => Promise<void>;
+  deleteMenuItem: (id: string) => Promise<void>;
+  toggleAvailability: (id: string, isAvailable: boolean) => Promise<void>;
+  toggleSpecial: (id: string, isSpecial:boolean) => Promise<void>;
 
   getFilteredItems: () => MenuItem[];
 }
 
 export const useMenuStore = create<MenuStore>((set, get) => ({
-  items: [
-    {
-      id: "edeb6a06-f22e-4249-a8b2-8dfce294bb48",
-      name: "Chicken Momo",
-      price: 150,
-      category: "Momo",
-      image: "🥟",
-      isVeg: false,
-      isAvailable: true,
-      description: "Delicious steamed chicken dumplings with spicy sauce",
-    },
-    {
-      id: "2",
-      name: "Veg Chowmein",
-      price: 120,
-      category: "Chowmein",
-      image: "🍝",
-      isVeg: true,
-      isAvailable: true,
-      description: "Stir-fried noodles with fresh vegetables",
-    },
-    {
-      id: "3",
-      name: "Buff Chowmein",
-      price: 140,
-      category: "Chowmein",
-      image: "🍜",
-      isVeg: false,
-      isAvailable: false,
-      description: "Noodles stir-fried with buffalo meat",
-    },
-    {
-      id: "4",
-      name: "Pani Puri",
-      price: 80,
-      category: "Chatpatey Items",
-      image: "🥚",
-      isVeg: true,
-      isAvailable: true,
-      description: "Crispy puris with spicy tangy water",
-    },
-    {
-      id: "5",
-      name: "Coke",
-      price: 50,
-      category: "Drinks",
-      image: "🥤",
-      isVeg: true,
-      isAvailable: true,
-      description: "Refreshing cold drink",
-    },
-    {
-      id: "6",
-      name: "Veg Spring Roll",
-      price: 130,
-      category: "Chatpatey Items",
-      image: "🌯",
-      isVeg: true,
-      isAvailable: false,
-      description: "Crispy rolls filled with mixed vegetables",
-    },
-    {
-      id: "7",
-      name: "Chicken Lollipop",
-      price: 200,
-      category: "Chatpatey Items",
-      image: "🍗",
-      isVeg: false,
-      isAvailable: true,
-      description: "Deep-fried chicken wings with tangy sauce",
-    },
-  ],
-
-  categories: ["All", "Veg", "Non-Veg", "Chatpatey Items", "Chowmein", "Drink"],
+  categories: [],
+  items: [],
   selectedCategory: "All",
   searchQuery: "",
 
   setSelectedCategory: (category) => set({ selectedCategory: category }),
   setSearchQuery: (query) => set({ searchQuery: query }),
+
+  fetchAll: async () => {
+    const categoriesFromApi = await fetchMenuItems(); // array of categories with nested items
+
+    // Flatten items for search/filter
+    const flatItems: MenuItem[] = categoriesFromApi.flatMap(category =>
+      category.items.map((item: MenuItem) => ({
+        ...item,
+        category: category.categoryName, // add category name to item
+      }))
+    );
+
+    set({
+      categories: categoriesFromApi,
+      items: flatItems,
+    });
+  },
 
   getFilteredItems: () => {
     const { items, selectedCategory, searchQuery } = get();
@@ -106,35 +62,77 @@ export const useMenuStore = create<MenuStore>((set, get) => ({
         selectedCategory === "All" ||
         (selectedCategory === "Veg" && item.isVeg) ||
         (selectedCategory === "Non-Veg" && !item.isVeg) ||
+        (selectedCategory === "Special" && item.isSpecial) ||
         item.category === selectedCategory;
 
-      const matchSearch = item.name
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase());
+      const matchSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
 
       return matchCategory && matchSearch;
     });
   },
 
-  addItem: (item) =>
-    set({
-      items: [...get().items, { ...item, id: crypto.randomUUID() }],
-    }),
+  addItem: async (formData: FormData) => {
+    const newItem = await addMenuItem(formData);
+    // Add category property if needed
+    const itemWithCategory = { ...newItem, category: newItem.category || "Uncategorized" };
+    set({ items: [...get().items, itemWithCategory] });
+    toast.success("Menu item added successfully!");
+  },
 
-  updateMenuItem: (updatedItem) =>
-    set({
-      items: get().items.map(i =>
-        i.id === updatedItem.id ? updatedItem : i
-      ),
-    }),
+  updateMenuItem: async (id: string, formData: FormData) => {
+    try {
+      const savedItem = await updateMenuItem(id, formData);
+      set({
+        items: get().items.map(i => (i.id === savedItem.id ? { ...savedItem, category: i.category } : i)),
+      });
+      toast.success("Menu item updated successfully!");
+    } catch (error) {
+      toast.error("Failed to update menu item");
+      console.error("Error updating menu item:", error);
+    }
+  },
 
-  deleteMenuItem: (id) =>
-    set({ items: get().items.filter(i => i.id !== id) }),
+  deleteMenuItem: async (id: string) => {
+    await deleteMenuItem(id);
+    set({ items: get().items.filter(i => i.id !== id) });
+    toast.success("Menu item deleted successfully!");
+  },
 
-  toggleAvailability: (id) =>
-    set({
-      items: get().items.map(i =>
-        i.id === id ? { ...i, isAvailable: !i.isAvailable } : i
-      ),
-    }),
+  // Add/update availability by fetching from the API and updating store
+  toggleAvailability: async (id: string) => {
+    const item = get().items.find(i => i.id === id);
+    if (!item) return;
+    try {
+      const updated = await toggleAvailabilityApi(id, !item.isAvailable);
+      set({
+        items: get().items.map(i =>
+          i.id === id ? { ...i, isAvailable: updated.menuItem?.isAvailable ?? updated.isAvailable } : i
+        ),
+      });
+      toast.success(
+        `Marked as ${updated.menuItem?.isAvailable ?? updated.isAvailable ? "available" : "unavailable"}`
+      );
+    } catch (error) {
+      toast.error("Failed to update availability");
+    }
+  },
+
+    toggleSpecial: async (id: string) => {
+      const item = get().items.find(i => i.id === id);
+      if (!item) return;
+      try {
+        const updated = await toggleSpecialApi(id, !item.isSpecial);
+        set({
+          items: get().items.map(i => (i.id === id ? { ...i, isSpecial: updated.menuItem?.isSpecial ?? updated.isSpecial } : i)),
+        });
+        toast.success(
+          updated.menuItem?.isSpecial ?? updated.isSpecial 
+            ? `${item.name} Marked as Special`
+            : `${item.name} Unmarked as Special`
+        );
+      } catch (error) {
+        toast.error("Failed to update special status");
+        console.error("Error toggling special:", error);
+      }
+    },
 }));

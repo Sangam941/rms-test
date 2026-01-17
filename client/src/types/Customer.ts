@@ -1,17 +1,5 @@
-// Credit Transaction Types
-export type CreditTransactionType = 'debt' | 'payment';
+// FILE: src/types/Customer.ts
 
-export interface CreditTransaction {
-  id: string;
-  customerId: string;
-  amount: number;
-  type: CreditTransactionType;
-  balance: number;
-  notes?: string;
-  timestamp: Date;
-}
-
-// Customer Type
 export interface Customer {
   id: string;
   name: string;
@@ -21,4 +9,15 @@ export interface Customer {
   creditLimit: number;
   creditHistory: CreditTransaction[];
   createdAt: Date;
+}
+
+export interface CreditTransaction {
+  id: string;
+  customerId: string;
+  orderId?: string;
+  type: 'debt' | 'payment';
+  amount: number;
+  balance: number;
+  notes?: string;
+  timestamp: Date;
 }

@@ -17,6 +17,7 @@ import CustomerMenuView from '../pages/customer/CustomerMenuView';
 import OrderTracking from '../pages/customer/OrderTracking';
 import AdminAddMenuView from '../pages/admin/AdminAddMenuView';
 import GenerateQr from '../pages/admin/GenerateQr';
+import CustomerDetails from '../pages/admin/CustomerDetails';
 
 // Admin Pages
 
@@ -42,10 +43,10 @@ export const router = createBrowserRouter([
     path: '/order-success/:orderId',
     element: <OrderSuccess />
   },
-//   {
-//     path: '/order-tracking/:orderId',
-//     element: <OrderTracking />
-//   },
+  {
+    path: '/order-tracking/:orderId',
+    element: <OrderTracking />
+  },
 
   // Admin Login (Public)
   {
@@ -85,6 +86,10 @@ export const router = createBrowserRouter([
       {
         path: 'orders',
         element: <AdminOrdersView />
+      },
+      {
+        path: 'customers/:id',
+        element: <CustomerDetails />
       },
       {
         path: 'generate-qr',
