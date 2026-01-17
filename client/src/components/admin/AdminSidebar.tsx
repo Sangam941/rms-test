@@ -12,6 +12,7 @@ const menuItems = [
   { path: '/admin/menu', icon: Utensils, label: 'Menu' },
   { path: '/admin/orders', icon: ShoppingBag, label: 'Orders' },
   { path: '/admin/walk-in-customer', icon: ShoppingBag, label: 'Walk-In-Customer' },
+  { path: '/admin/generate-qr', icon: ShoppingBag, label: 'Generate QR' },
   { path: '/admin/inventory', icon: ShoppingBag, label: 'Inventory' },
   { path: '/admin/credit', icon: Package, label: 'Credit' },
   { path: '/admin/reports', icon: BarChart3, label: 'Reports' },

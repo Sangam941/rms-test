@@ -16,12 +16,9 @@ import { useCustomerCartStore } from '../../store/useCustomerCartStore';
 
 export const OrderSuccess: React.FC = () => {
     const navigate = useNavigate();
-    const { orderId } = useParams();
+    const { orderId } = useParams<{ orderId: string }>();
     const { getOrderById } = useCustomerOrderStore();
-
-    // If you need session info in your app, uncomment and use these accordingly.
-    // const { getSession } = useSessionStore();
-    // const session = getSession();
+    console.log(orderId)
 
     // getOrderById may return undefined if orderId is missing or wrong
     const [order, setOrder] = useState<any>(() => (orderId ? getOrderById(orderId) : null));

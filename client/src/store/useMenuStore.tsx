@@ -21,7 +21,7 @@ interface MenuStore {
 export const useMenuStore = create<MenuStore>((set, get) => ({
   items: [
     {
-      id: "1",
+      id: "edeb6a06-f22e-4249-a8b2-8dfce294bb48",
       name: "Chicken Momo",
       price: 150,
       category: "Momo",
