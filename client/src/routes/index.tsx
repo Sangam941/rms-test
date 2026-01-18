@@ -7,7 +7,6 @@ import AdminDashboardView from '../pages/admin/AdminDashboardView';
 import AdminOrdersView from '../pages/admin/AdminOrdersView';
 import CreditLedger from '../pages/admin/CreditLedger';
 import InventoryManagement from '../pages/admin/InventoryManagement';
-import TableSelectionView from '../components/common/TableSelectionView';
 import AdminLoginView from '../pages/admin/AdminLoginView';
 import { ProtectedRoute } from '../layouts/ProtectedRoute';
 import AdminMenuView from '../pages/admin/AdminMenuView';
@@ -28,16 +27,16 @@ export const router = createBrowserRouter([
     element: <CustomerMenuView />
   },
   {
+    path: '/menu/:tableId',
+    element: <CustomerMenuView />
+  },
+  {
     path: '/order-success/:orderId',
     element: <OrderSuccess />
   },
   {
     path: '/order-tracking/:orderId',
     element: <OrderTracking />
-  },
-  {
-    path: '/table-selection',
-    element: <TableSelectionView />
   },
   {
     path: '/order-success/:orderId',

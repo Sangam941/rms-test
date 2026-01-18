@@ -17,7 +17,7 @@ export interface Order {
   paymentMethod?: 'cash' | 'online' | 'credit' | 'mixed';
   paymentStatus?: 'unpaid' | 'partial' | 'paid';
   
-  status: 'pending' | 'preparing' | 'served' | 'completed' | 'cancelled';
+  status: 'pending' | 'preparing' | 'served' | 'cancelled';
   createdAt: Date;
   updatedAt?: Date;
   completedAt?: Date;

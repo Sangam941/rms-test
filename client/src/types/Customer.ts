@@ -6,7 +6,7 @@ export interface Customer {
   phone: string;
   email?: string;
   totalCredit: number;
-  creditLimit: number;
+  creditLimit?: number;
   creditHistory: CreditTransaction[];
   createdAt: Date;
 }

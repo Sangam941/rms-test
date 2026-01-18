@@ -153,10 +153,10 @@ interface CustomerOrderStore {
     mobileNumber?: string;
   }) => Promise<CustomerOrder | null>;
 
-  updateExistingOrder: (
-    orderId: string,
-    newItems: (MenuItem & { quantity: number })[]
-  ) => Promise<CustomerOrder | null>;
+  // updateExistingOrder: (
+  //   orderId: string,
+  //   newItems: (MenuItem & { quantity: number })[]
+  // ) => Promise<CustomerOrder | null>;
 
   getOrderById: (id: string) => CustomerOrder | null;
   updateOrderStatus: (id: string, status: "pending" | "preparing" | "completed") => Promise<void>;
@@ -190,59 +190,60 @@ export const useCustomerOrderStore = create<CustomerOrderStore>((set, get) => ({
         throw new Error("Order creation failed - no response from server");
       }
 
-      set({ 
-        recentOrder: newOrder, 
+      set({
+        recentOrder: newOrder,
         orders: [...get().orders, newOrder]
       });
 
       toast.success("Order placed successfully!");
+      console.log(newOrder)
       return newOrder;
     } catch (error: any) {
       console.error("Create order failed:", error);
-      const errorMessage = error?.response?.data?.message || 
-                          error?.message || 
-                          "Failed to create order";
+      const errorMessage = error?.response?.data?.message ||
+        error?.message ||
+        "Failed to create order";
       toast.error(errorMessage);
       return null;
     }
   },
 
   // ⭐ NEW FUNCTION: Update existing order with new items
-  updateExistingOrder: async (orderId, newItems) => {
-    try {
-      if (!newItems || newItems.length === 0) {
-        throw new Error("No items to add");
-      }
+  // updateExistingOrder: async (orderId, newItems) => {
+  //   try {
+  //     if (!newItems || newItems.length === 0) {
+  //       throw new Error("No items to add");
+  //     }
 
-      const mappedItems = newItems.map(item => ({
-        menuItemId: item.id,
-        quantity: item.quantity
-      }));
+  //     const mappedItems = newItems.map(item => ({
+  //       menuItemId: item.id,
+  //       quantity: item.quantity
+  //     }));
 
-      const updatedOrder = await appendOrderItems(orderId, mappedItems);
+  //     const updatedOrder = await appendOrderItems(orderId, mappedItems);
 
-      if (!updatedOrder) {
-        throw new Error("Failed to update order");
-      }
+  //     if (!updatedOrder) {
+  //       throw new Error("Failed to update order");
+  //     }
 
-      // Update in local store
-      set(state => ({
-        orders: state.orders.map(o => 
-          o.orderId === orderId ? updatedOrder : o
-        ),
-        recentOrder: updatedOrder
-      }));
+  //     // Update in local store
+  //     set(state => ({
+  //       orders: state.orders.map(o =>
+  //         o.orderId === orderId ? updatedOrder : o
+  //       ),
+  //       recentOrder: updatedOrder
+  //     }));
 
-      return updatedOrder;
-    } catch (error: any) {
-      console.error("Update order failed:", error);
-      const errorMessage = error?.response?.data?.message || 
-                          error?.message || 
-                          "Failed to update order";
-      toast.error(errorMessage);
-      return null;
-    }
-  },
+  //     return updatedOrder;
+  //   } catch (error: any) {
+  //     console.error("Update order failed:", error);
+  //     const errorMessage = error?.response?.data?.message ||
+  //       error?.message ||
+  //       "Failed to update order";
+  //     toast.error(errorMessage);
+  //     return null;
+  //   }
+  // },
 
   getOrderById: (id: string) => {
     const { orders } = get();
@@ -258,7 +259,7 @@ export const useCustomerOrderStore = create<CustomerOrderStore>((set, get) => ({
       });
 
       set((state) => ({
-        orders: state.orders.map((o) => 
+        orders: state.orders.map((o) =>
           o.orderId === id ? { ...o, status } : o
         ),
         recentOrder:

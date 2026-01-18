@@ -1,12 +1,14 @@
 import { create } from 'zustand';
 import type { CreditTransaction, Customer } from '../types/Customer';
+import toast from 'react-hot-toast';
+import { addCustomer } from '../api/credit';
 
 interface CreditStore {
   customers: Customer[];
   isLoading: boolean;
   error: string | null;
 
-  addCustomer: (customer: Omit<Customer, 'id' | 'createdAt' | 'creditHistory' | 'totalCredit'>) => Customer;
+  addCustomer: (customer: Omit<Customer, 'id' | 'createdAt' | 'creditHistory' | 'totalCredit'>) => Promise<Customer>;
   updateCustomer: (id: string, updates: Partial<Customer>) => void;
   deleteCustomer: (id: string) => void;
   getCustomerById: (id: string) => Customer | undefined;
@@ -41,28 +43,44 @@ export const useCreditStore = create<CreditStore>((set, get) => ({
   isLoading: false,
   error: null,
 
-  addCustomer: (customerData) => {
-    if (!customerData.phone || customerData.phone.length < 10) {
-      throw new Error('Invalid phone number');
+  addCustomer: async (customerData) => {
+    const { name, phone } = customerData;
+
+    try {
+      if (!customerData.phone || customerData.phone.length < 10) {
+        throw new Error('Invalid phone number');
+      }
+
+      const exists = get().customers.find(c => c.phone === customerData.phone);
+      if (exists) throw new Error('Customer already exists');
+
+      // Call backend API
+      const apiCustomer = await addCustomer({name, phone})
+
+      const newCustomer: Customer = {
+        ...apiCustomer,
+        totalCredit: apiCustomer.totalCredit ?? 0,
+        creditHistory: [],
+        createdAt: apiCustomer.createdAt ? new Date(apiCustomer.createdAt) : new Date(),
+        id: apiCustomer.id,
+      };
+
+      set(state => ({
+        customers: [...state.customers, newCustomer],
+        error: null
+      }));
+
+      return newCustomer;
+    } catch (error: any) {
+      const message = error?.message || 'Failed to add customer';
+      set(state => ({
+        ...state,
+        error: message
+      }));
+      // Import toast at the file top if not yet
+      import('react-hot-toast').then(({ toast }) => toast.error(message));
+      throw error;
     }
-
-    const exists = get().customers.find(c => c.phone === customerData.phone);
-    if (exists) throw new Error('Customer already exists');
-
-    const newCustomer: Customer = {
-      ...customerData,
-      id: `cust-${Date.now()}`,
-      totalCredit: 0,
-      creditHistory: [],
-      createdAt: new Date()
-    };
-
-    set(state => ({
-      customers: [...state.customers, newCustomer],
-      error: null
-    }));
-
-    return newCustomer;
   },
 
   updateCustomer: (id, updates) =>

@@ -14,7 +14,7 @@ export const createOrder = async (payload: {
   
   // Fetch all orders (for admin)
   export const getOrders = async () => {
-    const response = await api.get("/orders");
+    const response = await api.get("/admin/orders/active");
     return response.data; // returns array of orders
   };
   

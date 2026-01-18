@@ -41,25 +41,30 @@ export const WalkInOrder: React.FC = () => {
     getFilteredItems,
   } = useMenuStore();
 
-  const { items: cartItems, addItem, removeItem, updateQuantity, getTotalAmount, getTotalItems } = useCartStore();
-  const { currentOrder, updateOrder } = useOrderStore();
+  const { items: cartItems, addItem, removeItem, updateQuantity, getTotalAmount, getTotalItems, clearCart } = useCartStore();
+  const { currentOrder, updateOrder, addOrder } = useOrderStore();
 
   const [allItems, setAllItems] = useState<MenuItem[]>([]);
   const originalCustomerNameRef = useRef(currentOrder?.customerName || '');
   const [customerName, setCustomerName] = useState(currentOrder?.customerName || '');
   const [isEditingCustomer, setIsEditingCustomer] = useState(false);
+  const [placingOrder, setPlacingOrder] = useState(false);
+  const [orderError, setOrderError] = useState<string | null>(null);
+  const [orderSuccess, setOrderSuccess] = useState<string | null>(null);
 
   // Fetch menu items from store (backend)
   useEffect(() => {
     fetchAll().then(() => {
       setAllItems(getFilteredItems());
     });
-  }, [fetchAll, getFilteredItems]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchAll]);
 
   // Sync filtered items whenever store updates
   useEffect(() => {
     setAllItems(getFilteredItems());
-  }, [getFilteredItems]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [menuItems, categories, selectedCategory, searchQuery]);
 
   // Add "All" category
   const categoryOptions = [
@@ -72,7 +77,8 @@ export const WalkInOrder: React.FC = () => {
     if (categoryOptions.length && !selectedCategory) {
       setSelectedCategory(categoryOptions[0].categoryName || categoryOptions[0]);
     }
-  }, [categoryOptions, selectedCategory, setSelectedCategory]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categories, selectedCategory]);
 
   // Update customer name if changed outside
   useEffect(() => {
@@ -84,6 +90,7 @@ export const WalkInOrder: React.FC = () => {
       originalCustomerNameRef.current = currentOrder.customerName;
       setCustomerName(currentOrder.customerName);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentOrder?.customerName]);
 
   // Sync customer from URL query
@@ -98,7 +105,8 @@ export const WalkInOrder: React.FC = () => {
     if (currentOrder) {
       updateOrder(currentOrder.id, { customerName: customerFromQuery });
     }
-  }, [customerFromQuery, currentOrder, updateOrder]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customerFromQuery, currentOrder]);
 
   // Filtered menu items
   const filteredProducts = allItems.filter((item) => {
@@ -140,6 +148,52 @@ export const WalkInOrder: React.FC = () => {
       originalCustomerNameRef.current = finalName;
     }
     setIsEditingCustomer(false);
+  };
+
+  /**
+   * Place the order using the cart items, customer, etc.
+   * FIX: include price and name for each item in the order, as some backends require these for display and receipt.
+   */
+  const handlePlaceOrder = async () => {
+    setOrderError(null);
+    setOrderSuccess(null);
+
+    if (placingOrder) return; // Prevent double click
+    if (!cartItems.length) {
+      setOrderError('Cart is empty!');
+      return;
+    }
+    setPlacingOrder(true);
+    try {
+      // Prepare order structure; fix: include price & name in each item
+      const newOrder = {
+        customerType: "WALK-IN" as "WALK-IN",
+        customerName: customerName.trim() || "Walk-in Customer",
+        items: cartItems.map(item => ({
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+        })),
+        total: orderTotal,
+      };
+      // Use addOrder from useOrderStore
+      try {
+        // Await must match the backend or zustand store signature
+        await addOrder(newOrder);
+        setOrderSuccess("Order placed successfully!");
+        clearCart();
+        setTimeout(() => {
+          navigate("/admin/orders");
+        }, 1200);
+      } catch (error: any) {
+        setOrderError(error?.message || "Failed to place order.");
+      }
+    } catch (err: any) {
+      setOrderError(err?.message || "Failed to place order.");
+    } finally {
+      setPlacingOrder(false);
+    }
   };
 
   /**
@@ -244,8 +298,8 @@ export const WalkInOrder: React.FC = () => {
                 disabled={!!searchQuery.trim()}
               >
                 {categoryOptions.map((cat) => (
-                  <option key={cat.categoryId || cat} value={cat.categoryName || cat}>
-                    {cat.categoryName || cat}
+                  <option key={cat.categoryId || (typeof cat === 'string' ? cat : '')} value={cat.categoryName || (typeof cat === 'string' ? cat : '')}>
+                    {cat.categoryName || (typeof cat === 'string' ? cat : '')}
                   </option>
                 ))}
               </select>
@@ -326,7 +380,19 @@ export const WalkInOrder: React.FC = () => {
                 <span>Total</span>
                 <span className="text-orange-600">Rs. {orderTotal}</span>
               </div>
-              <button className="w-full mt-4 bg-orange-500 text-white py-3 rounded-xl font-bold">Place Order</button>
+              {orderError && (
+                <div className="text-red-500 text-center mt-2 text-sm">{orderError}</div>
+              )}
+              {orderSuccess && (
+                <div className="text-green-600 text-center mt-2 text-sm">{orderSuccess}</div>
+              )}
+              <button
+                className="w-full mt-4 bg-orange-500 text-white py-3 rounded-xl font-bold"
+                disabled={placingOrder || itemCount === 0}
+                onClick={handlePlaceOrder}
+              >
+                {placingOrder ? "Placing..." : "Place Order"}
+              </button>
             </div>
           </aside>
         </div>
@@ -340,3 +406,4 @@ export const WalkInOrder: React.FC = () => {
 };
 
 export default WalkInOrder;
+

@@ -71,7 +71,7 @@ export const AddCustomerModal: React.FC<AddCustomerModalProps> = ({ isOpen, onCl
     setIsSubmitting(true);
 
     try {
-      addCustomer({
+      await addCustomer({
         name: formData.name.trim(),
         phone: formData.phone.replace(/\s/g, ''),
         email: formData.email.trim() || undefined,
