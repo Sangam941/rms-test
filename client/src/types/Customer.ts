@@ -2,10 +2,10 @@
 
 export interface Customer {
   id: string;
-  name: string;
-  phone: string;
+  fullName: string;
+  phoneNumber: string;
   email?: string;
-  totalCredit: number;
+  totalDue: number;
   creditLimit?: number;
   creditHistory: CreditTransaction[];
   createdAt: Date;

@@ -106,6 +106,10 @@ export const router = createBrowserRouter([
         path: 'credit',
         element: <CreditLedger />
       },
+      {
+        path: 'customers/:id',
+        element: <CreditLedger />
+      },
     //   {
     //     path: 'customers/:id',
     //     element: <CustomerDetails />

@@ -1,155 +1,163 @@
 import { create } from 'zustand';
-import { createOrder, getOrders } from '../api/orders';
+import { createOrder, getOrders, updateOrderStatusToPreparing, updateOrderStatusToServe } from '../api/orders';
 import toast from 'react-hot-toast';
 
-interface menu{
+interface menu {
   name: string;
   price: number;
 }
 
 interface OrderItem {
-    id: string;
-    name: string;
-    quantity: number;
-    menuItem: menu;
+  id: string;
+  name: string;
+  quantity: number;
+  menuItem: menu;
 }
 
 interface Order {
-    id: string;
-    orderNumber?: string;
-    tableNumber?: string;
-    customerName?: string;
-    status: 'pending' | 'preparing' | 'completed' | 'cancelled';
-    totalAmount?: number;
-    finalAmount?: number;
-    items: OrderItem[];
-    createdAt?: string;
-    updatedAt?: string;
-    paymentMethod?: 'cash' | 'online' | 'mixed' | 'credit';
-    discountType?: 'percentage' | 'amount';
-    discountValue?: number;
-    finalAmountAfterDiscount?: number;
+  id: string;
+  orderNumber?: string;
+  tableNumber?: string;
+  customerName?: string;
+  status: 'pending' | 'preparing' | 'served' | 'cancelled';
+  totalAmount?: number;
+  finalAmount?: number;
+  items: OrderItem[];
+  createdAt?: string;
+  updatedAt?: string;
+  paymentMethod?: 'cash' | 'online' | 'mixed' | 'credit';
+  discountType?: 'percentage' | 'amount';
+  discountValue?: number;
+  finalAmountAfterDiscount?: number;
 }
 
 interface OrderStore {
-    orders: Order[];
-    currentOrder: Order | null;
-    selectedStatus: string;
-    isLoading: boolean;
-    error: string | null;
-    
-    fetchOrders: () => Promise<void>;
-    updateOrderStatus: (orderId: string, newStatus: Order['status']) => Promise<void>;
-    setCurrentOrder: (order: Order | null) => void;
-    setSelectedStatus: (status: string) => void;
-    getFilteredOrders: () => Order[];
+  orders: Order[];
+  currentOrder: Order | null;
+  selectedStatus: string;
+  isLoading: boolean;
+  error: string | null;
+
+  fetchOrders: () => Promise<void>;
+  updateOrderStatus: (orderId: string, newStatus: Order['status']) => Promise<void>;
+  setCurrentOrder: (order: Order | null) => void;
+  setSelectedStatus: (status: string) => void;
+  getFilteredOrders: () => Order[];
 }
 
 export const useOrderStore = create<OrderStore>((set, get) => ({
-    orders: [],
-    currentOrder: null,
-    selectedStatus: 'all',
-    isLoading: false,
-    error: null,
+  orders: [],
+  currentOrder: null,
+  selectedStatus: 'all',
+  isLoading: false,
+  error: null,
 
-    fetchOrders: async () => {
-        set({ isLoading: true, error: null });
-        try {
-            
-            const data = await getOrders();
-            
-            // Ensure each order has required fields with fallbacks
-            const ordersWithDefaults = (data.orders || data || []).map((order: any) => ({
-                ...order,
-                id: order.id || order._id || `order-${Date.now()}-${Math.random()}`,
-                status: order.status || 'pending',
-                items: order.items || [],
-                totalAmount: order.totalAmount || order.finalAmount || 0,
-            }));
-            
-            set({ orders: ordersWithDefaults, isLoading: false });
-        } catch (error) {
-            console.error('Error fetching orders:', error);
-            set({ 
-                error: error instanceof Error ? error.message : 'Failed to fetch orders',
-                isLoading: false,
-                orders: [] // Set empty array on error
-            });
-        }
-    },
+  fetchOrders: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const data = await getOrders();
 
-    addOrder: async (order:any) => {
-      const payload = {
-        customerType: "WALK-IN" as const,
-        // Do not send tableCode for walk-in
-        // The backend might expect customerName for walk-in, not tableCode
-        tableCode: order.customerName, // Use customerName property for walk-in
-        items: order.items.map(item => ({
-          menuItemId: item?.id,
-          quantity: item.quantity ?? 1,
-        })),
-        // Optionally pass customerPhone, notes, etc. if you support them
-      };
-      console.log(payload)
-  
-      try {
-        const createdOrder = await createOrder(payload);
-  
-        set((state) => ({
-          orders: [createdOrder, ...state.orders]
-        }));
-  
-        toast.success("Order placed successfully!");
-      } catch (error: any) {
-        toast.error(error?.message || "Failed to place order.");
-        throw error;
+      console.log(data)
+
+      // Ensure each order has required fields with fallbacks
+      const ordersWithDefaults = (data.orders || data || []).map((order: any) => ({
+        ...order,
+        id: order.id || order._id || `order-${Date.now()}-${Math.random()}`,
+        status: order.status || 'pending',
+        items: order.items || [],
+        totalAmount: order.totalAmount || order.finalAmount || 0,
+      }));
+
+      set({ orders: ordersWithDefaults, isLoading: false });
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+      set({
+        error: error instanceof Error ? error.message : 'Failed to fetch orders',
+        isLoading: false,
+        orders: [] // Set empty array on error
+      });
+    }
+  },
+
+  addOrder: async (order: any) => {
+    const payload = {
+      customerType: "WALK-IN" as const,
+      // Do not send tableCode for walk-in
+      // The backend might expect customerName for walk-in, not tableCode
+      tableCode: order.customerName, // Use customerName property for walk-in
+      items: order.items.map((item: any) => ({
+        menuItemId: item?.id,
+        quantity: item?.quantity ?? 1,
+      })),
+      // Optionally pass customerPhone, notes, etc. if you support them
+    };
+    console.log(payload)
+
+    try {
+      const createdOrder = await createOrder(payload);
+      console.log("new order created: ", createdOrder)
+
+      set((state) => ({
+        orders: [createdOrder, ...state.orders]
+      }));
+
+      toast.success("Order placed successfully!");
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to place order.");
+      throw error;
+    }
+  },
+
+  updateOrderStatus: async (orderId: string, newStatus: Order['status']) => {
+    try {
+      let updatedOrder: any = null;
+
+      if (newStatus === 'preparing') {
+        // Use admin API to patch to preparing state:
+        updatedOrder = await updateOrderStatusToPreparing(orderId);
       }
-    },
+      else if (newStatus === 'served') {
+        // Use admin API to patch to preparing state:
+        updatedOrder = await updateOrderStatusToServe(orderId);
+      }
 
-    updateOrderStatus: async (orderId: string, newStatus: Order['status']) => {
-        try {
-            const response = await fetch(`/api/orders/${orderId}`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ status: newStatus }),
-            });
+      // Optimistically update the UI
+      set((state) => ({
+        orders: state.orders.map((order) =>
+          order.id === orderId
+            ? {
+                ...order,
+                status: newStatus,
+                ...(updatedOrder ? updatedOrder : {})
+              }
+            : order
+        ),
+      }));
+      toast.success("status updated")
 
-            if (!response.ok) {
-                throw new Error('Failed to update order status');
-            }
+      // Optionally refresh orders from server
+      // await get().fetchOrders();
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      set({ error: error instanceof Error ? error.message : 'Failed to update order' });
+    }
+  },
 
-            // Optimistically update the UI
-            set((state) => ({
-                orders: state.orders.map((order) =>
-                    order.id === orderId ? { ...order, status: newStatus } : order
-                ),
-            }));
+  setCurrentOrder: (order: Order | null) => {
+    set({ currentOrder: order });
+  },
 
-            // Optionally refresh orders from server
-            // await get().fetchOrders();
-        } catch (error) {
-            console.error('Error updating order status:', error);
-            set({ error: error instanceof Error ? error.message : 'Failed to update order' });
-        }
-    },
+  setSelectedStatus: (status: string) => {
+    set({ selectedStatus: status });
+  },
 
-    setCurrentOrder: (order: Order | null) => {
-        set({ currentOrder: order });
-    },
+  getFilteredOrders: () => {
+    const { orders, selectedStatus } = get();
 
-    setSelectedStatus: (status: string) => {
-        set({ selectedStatus: status });
-    },
+    if (selectedStatus === 'all') {
+      return orders;
+    }
 
-    getFilteredOrders: () => {
-        const { orders, selectedStatus } = get();
-        
-        if (selectedStatus === 'all') {
-            return orders;
-        }
-        
-        return orders.filter((order) => order.status === selectedStatus);
-    },
+    return orders.filter((order) => order.status === selectedStatus);
+  },
 }));

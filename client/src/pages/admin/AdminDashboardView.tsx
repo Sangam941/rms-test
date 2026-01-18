@@ -11,48 +11,18 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import ToggleSideBar from "../../components/admin/ToggleSideBar";
-
-// Dummy orders for demonstration
-const DUMMY_ORDERS = [
-  {
-    id: 1001,
-    tableNumber: "T3",
-    customerName: "Rahul Shah",
-    totalAmount: 1240,
-    status: "completed",
-  },
-  {
-    id: 1002,
-    tableNumber: "C2",
-    customerName: "Sneha Joshi",
-    totalAmount: 685,
-    status: "preparing",
-  },
-  {
-    id: 1003,
-    tableNumber: "O1",
-    customerName: "Kabir Karki",
-    totalAmount: 890,
-    status: "cancelled",
-  },
-  {
-    id: 1004,
-    tableNumber: "T1",
-    customerName: "Asmi Sharma",
-    totalAmount: 1200,
-    status: "completed",
-  },
-  {
-    id: 1005,
-    tableNumber: "C3",
-    customerName: "Bikash Kunwar",
-    totalAmount: 1550,
-    status: "preparing",
-  },
-];
+import { useEffect } from "react";
+import { useOrderStore } from "../../store/useOrderStore";
 
 const AdminDashboardView = () => {
   const navigate = useNavigate();
+  const { orders, fetchOrders, isLoading } = useOrderStore();
+
+  useEffect(() => {
+    fetchOrders();
+    // Only on mount, don't add fetchOrders as dependency
+    // eslint-disable-next-line
+  }, []);
 
   const stats = [
     {
@@ -84,6 +54,16 @@ const AdminDashboardView = () => {
       bg: "bg-orange-100",
     },
   ];  
+
+  // Get up to 5 of the most recent orders
+  const recentOrders = (orders || [])
+    .slice()
+    .sort((a, b) => {
+      const dateA = new Date(a.createdAt || "").getTime();
+      const dateB = new Date(b.createdAt || "").getTime();
+      return dateB - dateA;
+    })
+    .slice(0, 5);
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
@@ -164,42 +144,63 @@ const AdminDashboardView = () => {
             </div>
 
             <div className="space-y-4">
-              {DUMMY_ORDERS.slice(0, 5).map((order) => (
-                <div
-                  key={order.id}
-                  className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                      <ShoppingBag className="w-6 h-6 text-orange-600" />
+              {isLoading ? (
+                <div className="text-center py-6 text-gray-500">Loading recent orders...</div>
+              ) : recentOrders.length === 0 ? (
+                <div className="text-center py-6 text-gray-400">No recent orders found.</div>
+              ) : (
+                recentOrders.map((order) => (
+                  <div
+                    key={order.id}
+                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                        <ShoppingBag className="w-6 h-6 text-orange-600" />
+                      </div>
+                      <div>
+                        <div className="font-semibold">
+                          Order #{order.orderNumber || order.id}
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          {order.tableNumber ? (
+                            <>Table {order.tableNumber} </>
+                          ) : null}
+                          {order.customerName ? (
+                            <>
+                              {order.tableNumber ? <span>• </span> : null}
+                              {order.customerName}
+                            </>
+                          ) : null}
+                        </div>
+                        {order.createdAt && (
+                          <div className="text-xs text-gray-400 mt-1">
+                            {new Date(order.createdAt).toLocaleString()}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      <div className="font-semibold">
-                        Order #{order.id}
+                    <div className="text-right">
+                      <div className="font-bold text-lg">
+                        Rs. {order.totalAmount ?? order.finalAmount ?? 0}
                       </div>
-                      <div className="text-sm text-gray-600">
-                        Table {order.tableNumber} • {order.customerName}
-                      </div>
+                      <span
+                        className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
+                          order.status === "completed"
+                            ? "bg-green-100 text-green-800"
+                            : order.status === "preparing"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : order.status === "pending"
+                            ? "bg-blue-100 text-blue-800"
+                            : "bg-red-100 text-red-800"
+                        }`}
+                      >
+                        {order.status?.toUpperCase() || "N/A"}
+                      </span>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="font-bold text-lg">
-                      Rs. {order.totalAmount}
-                    </div>
-                    <span
-                      className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
-                        order.status === "completed"
-                          ? "bg-green-100 text-green-800"
-                          : order.status === "preparing"
-                          ? "bg-yellow-100 text-yellow-800"
-                          : "bg-red-100 text-red-800"
-                      }`}
-                    >
-                      {order.status.toUpperCase()}
-                    </span>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         </main>

@@ -1,11 +1,8 @@
 import React, { useState } from 'react';
-import { DollarSign, FileText, AlertCircle } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+import { X, DollarSign } from 'lucide-react';
 import type { Customer } from '../../../types/Customer';
 import { useCreditStore } from '../../../store/useCreditStore';
-import Modal from '../../common/Modal';
-import Input from '../../common/Input';
-import Button from '../../common/Button';
+import toast from 'react-hot-toast';
 
 interface AddDebtModalProps {
   customer: Customer;
@@ -13,171 +10,171 @@ interface AddDebtModalProps {
   onClose: () => void;
 }
 
-export const AddDebtModal: React.FC<AddDebtModalProps> = ({ customer, isOpen, onClose }) => {
-  const { addCreditTransaction } = useCreditStore();
-  const [amount, setAmount] = useState(0);
-  const [notes, setNotes] = useState('');
+export const AddDebtModal: React.FC<AddDebtModalProps> = ({ 
+  customer, 
+  isOpen, 
+  onClose 
+}) => {
+  const [amount, setAmount] = useState<string>('');
+  const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const availableCredit = customer.creditLimit - customer.totalCredit;
-  const newTotal = customer.totalCredit + amount;
-  const exceedsLimit = newTotal > customer.creditLimit;
+  const { addCreditTransaction } = useCreditStore();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (amount <= 0) {
-      toast.error('Amount must be greater than zero');
-      return;
-    }
-
-    if (exceedsLimit) {
-      toast.error('Amount exceeds customer credit limit');
+    
+    const debtAmount = parseFloat(amount);
+    
+    if (!debtAmount || debtAmount <= 0) {
+      toast.error('Please enter a valid amount');
       return;
     }
 
     setIsSubmitting(true);
-
+    
     try {
+      // Call API to add debt
+      const response = await fetch(`/api/customers/${customer.id}/debt`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: debtAmount,
+          description: description || 'Debt added',
+          type: 'debt'
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to add debt');
+      }
+
+      const data = await response.json();
+
+      // Update local store
       addCreditTransaction(customer.id, {
         customerId: customer.id,
         type: 'debt',
-        amount: amount,
-        notes: notes.trim() || `Manual debt entry - ${new Date().toLocaleDateString()}`
+        amount: debtAmount,
+        notes: description || 'Debt added',
       });
 
-      toast.success(`Rs. ${amount} added to ${customer.name}'s account`);
-      handleClose();
+      toast.success(`Rs. ${debtAmount.toLocaleString()} debt added successfully!`);
+      
+      // Reset form
+      setAmount('');
+      setDescription('');
+      onClose();
     } catch (error: any) {
-      toast.error(error.message || 'Failed to add debt');
+      console.error('Error adding debt:', error);
+      toast.error(error?.message || 'Failed to add debt');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleClose = () => {
-    setAmount(0);
-    setNotes('');
-    onClose();
-  };
+  if (!isOpen) return null;
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={handleClose}
-      title="Add Debt to Account"
-      size="md"
-    >
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Customer Info */}
-        <div className="bg-gray-50 rounded-xl p-4">
-          <p className="text-sm text-gray-600 mb-1">Customer</p>
-          <p className="text-xl font-bold text-gray-900">{customer.name}</p>
-          <div className="mt-2 grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <p className="text-gray-600">Current Outstanding:</p>
-              <p className="font-bold text-red-600">Rs. {customer.totalCredit.toLocaleString()}</p>
-            </div>
-            <div>
-              <p className="text-gray-600">Available Credit:</p>
-              <p className="font-bold text-green-600">Rs. {availableCredit.toLocaleString()}</p>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b">
+          <h3 className="text-xl font-bold text-gray-900">Add Debt</h3>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* Customer Info */}
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <p className="text-sm text-gray-600 mb-1">Customer</p>
+            <p className="font-semibold text-gray-900">{customer.fullName}</p>
+            <p className="text-sm text-gray-600">{customer.phoneNumber}</p>
+            <div className="mt-2 pt-2 border-t">
+              <p className="text-sm text-gray-600">Current Balance</p>
+              <p className="text-xl font-bold text-red-600">
+                Rs. {(customer.totalDue || customer.totalCredit || 0).toLocaleString()}
+              </p>
             </div>
           </div>
-        </div>
 
-        {/* Amount Input */}
-        <Input
-          type="number"
-          label="Debt Amount (Rs.) *"
-          value={amount}
-          onChange={(e) => setAmount(Number(e.target.value))}
-          placeholder="Enter amount"
-          icon={<DollarSign className="w-5 h-5" />}
-          // Removing unsupported props 'min' and 'max'
-          required
-        />
-
-        {/* Notes */}
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            Notes (Optional)
-          </label>
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Reason for debt addition..."
-            className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            rows={3}
-          />
-        </div>
-
-        {/* Preview */}
-        {amount > 0 && (
-          <div className={`rounded-xl p-4 border-2 ${
-            exceedsLimit 
-              ? 'bg-red-50 border-red-200' 
-              : 'bg-blue-50 border-blue-200'
-          }`}>
-            <div className="flex items-start gap-2 mb-3">
-              <AlertCircle className={`w-5 h-5 mt-0.5 ${
-                exceedsLimit ? 'text-red-600' : 'text-blue-600'
-              }`} />
-              <div className="flex-1">
-                <p className="font-semibold text-gray-800 mb-2">
-                  {exceedsLimit ? 'Credit Limit Exceeded!' : 'Transaction Preview'}
-                </p>
-                <div className="space-y-1 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Adding Amount:</span>
-                    <span className="font-bold">Rs. {amount.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">New Outstanding:</span>
-                    <span className={`font-bold ${exceedsLimit ? 'text-red-600' : 'text-gray-900'}`}>
-                      Rs. {newTotal.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Credit Limit:</span>
-                    <span className="font-bold text-gray-900">
-                      Rs. {customer.creditLimit.toLocaleString()}
-                    </span>
-                  </div>
-                  {!exceedsLimit && (
-                    <div className="flex justify-between pt-2 border-t">
-                      <span className="text-gray-600">Remaining Credit:</span>
-                      <span className="font-bold text-green-600">
-                        Rs. {(customer.creditLimit - newTotal).toLocaleString()}
-                      </span>
-                    </div>
-                  )}
-                </div>
+          {/* Amount Input */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Debt Amount *
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <DollarSign className="w-5 h-5 text-gray-400" />
               </div>
+              <input
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="0.00"
+                step="0.01"
+                min="0"
+                required
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-600 focus:border-transparent"
+              />
             </div>
+            <p className="mt-1 text-xs text-gray-500">
+              Enter the amount the customer owes
+            </p>
           </div>
-        )}
 
-        {/* Actions */}
-        <div className="flex gap-3 pt-4">
-          <Button
-            type="button"
-            variant="outline"
-            fullWidth
-            onClick={handleClose}
-            disabled={isSubmitting}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            fullWidth
-            loading={isSubmitting}
-            disabled={isSubmitting || amount <= 0 || exceedsLimit}
-          >
-            {isSubmitting ? 'Adding Debt...' : `Add Rs. ${amount.toLocaleString()}`}
-          </Button>
-        </div>
-      </form>
-    </Modal>
+          {/* Description Input */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Description (Optional)
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="e.g., Order #1234, Table 5"
+              rows={3}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-600 focus:border-transparent resize-none"
+            />
+          </div>
+
+          {/* New Balance Preview */}
+          {amount && parseFloat(amount) > 0 && (
+            <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+              <p className="text-sm text-gray-700 mb-1">Total Balance (Current + New Debt)</p>
+              <p className="text-2xl font-bold text-orange-600">
+                Rs. {(Number(customer.totalDue ?? 0) + parseFloat(amount)).toLocaleString()}
+              </p>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isSubmitting}
+              className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting || !amount || parseFloat(amount) <= 0}
+              className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? 'Adding...' : 'Add Debt'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 };

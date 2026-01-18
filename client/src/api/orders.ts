@@ -25,12 +25,19 @@ export const createOrder = async (payload: {
   };
   
   // Update order status (admin)
-  export const updateOrderStatus = async (
-    orderId: string,
-    status: "Pending" | "Completed" | "Cancelled"
+  export const updateOrderStatusToPreparing = async (
+    orderId: string
   ) => {
-    const response = await api.patch(`/orders/${orderId}`, { status });
+    const response = await api.patch(`/admin/orders/${orderId}/preparing`);
     return response.data;
   };
+  // Update order status (admin)
+  export const updateOrderStatusToServe = async (
+    orderId: string
+  ) => {
+    const response = await api.patch(`/admin/orders/${orderId}/serve`);
+    return response.data;
+  };
+
 
   

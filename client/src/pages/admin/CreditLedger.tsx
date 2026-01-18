@@ -1,27 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, User, Phone, History, AlertCircle, Wallet } from 'lucide-react';
+import { Plus, User, Phone, History, Wallet } from 'lucide-react';
 import { useCreditStore } from '../../store/useCreditStore';
 import Button from '../../components/common/Button';
 import Card from '../../components/common/Card';
 import Modal from '../../components/common/Modal';
-import Input from '../../components/common/Input';
 import SearchInput from '../../components/common/SearchInput';
 import { AddCustomerModal } from '../../components/admin/AddCustomerModal';
 import { toast } from 'react-hot-toast';
 
 const CreditLedger: React.FC = () => {
   const navigate = useNavigate();
-  const { customers, getTotalOutstanding, settleDebt, error, clearError } = useCreditStore();
+  const {
+    customers,
+    getTotalOutstanding,
+    settleDebt,
+    fetchAllCustomers,
+    isLoading,
+    error,
+    clearError,
+    searchCustomers // Import searchCustomers from store
+  } = useCreditStore();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
   const [settlementAmount, setSettlementAmount] = useState(0);
   const [showAddModal, setShowAddModal] = useState(false);
 
-  const filteredCustomers = customers.filter(c =>
-    c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.phone.includes(searchQuery)
-  );
+  // Fetch all users when this component mounts
+  useEffect(() => {
+    fetchAllCustomers();
+  }, []);
+
+  // Use the searchCustomers function from the store for filteredCustomers
+  const filteredCustomers = searchCustomers(searchQuery);
+  console.log(filteredCustomers)
 
   const totalOutstanding = getTotalOutstanding();
 
@@ -46,7 +59,7 @@ const CreditLedger: React.FC = () => {
           <h1 className="text-3xl font-bold text-gray-900">Credit Ledger</h1>
           <p className="text-gray-600 mt-1">Manage customer credit accounts</p>
         </div>
-        <Button 
+        <Button
           icon={<Plus className="w-5 h-5" />}
           onClick={() => setShowAddModal(true)}
         >
@@ -64,8 +77,15 @@ const CreditLedger: React.FC = () => {
         </div>
       )}
 
+      {/* Loading State */}
+      {isLoading && (
+        <div className="flex items-center justify-center my-10">
+          <span className="text-blue-600 font-semibold">Loading customers...</span>
+        </div>
+      )}
+
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <Card className="border-l-4 border-red-500">
           <div className="flex items-center gap-3">
             <div className="bg-red-100 p-3 rounded-lg">
@@ -73,11 +93,15 @@ const CreditLedger: React.FC = () => {
             </div>
             <div>
               <p className="text-sm text-gray-600">Total Outstanding</p>
-              <p className="text-2xl font-bold text-red-600">Rs. {totalOutstanding.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-red-600">
+                Rs.{" "}
+                {customers
+                  .reduce((sum, c) => sum + (Number(c.totalDue) || 0), 0)
+                  .toLocaleString()}
+              </p>
             </div>
           </div>
         </Card>
-
         <Card className="border-l-4 border-blue-500">
           <div className="flex items-center gap-3">
             <div className="bg-blue-100 p-3 rounded-lg">
@@ -86,20 +110,6 @@ const CreditLedger: React.FC = () => {
             <div>
               <p className="text-sm text-gray-600">Total Customers</p>
               <p className="text-2xl font-bold text-blue-600">{customers.length}</p>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="border-l-4 border-yellow-500">
-          <div className="flex items-center gap-3">
-            <div className="bg-yellow-100 p-3 rounded-lg">
-              <AlertCircle className="w-6 h-6 text-yellow-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Near Limit</p>
-              <p className="text-2xl font-bold text-yellow-600">
-                {customers.filter(c => c.totalCredit >= c.creditLimit * 0.8).length}
-              </p>
             </div>
           </div>
         </Card>
@@ -115,7 +125,13 @@ const CreditLedger: React.FC = () => {
       </Card>
 
       {/* Customer List */}
-      {filteredCustomers.length === 0 ? (
+      {isLoading ? (
+        <Card>
+          <div className="text-center py-12">
+            <span className="text-blue-500 font-semibold">Fetching customer data...</span>
+          </div>
+        </Card>
+      ) : filteredCustomers.length === 0 ? (
         <Card>
           <div className="text-center py-12">
             <User className="w-16 h-16 mx-auto mb-4 text-gray-300" />
@@ -142,49 +158,25 @@ const CreditLedger: React.FC = () => {
                     <User className="w-6 h-6 text-indigo-600" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-lg text-gray-900">{customer.name}</h3>
+                    <h3 className="font-bold text-lg text-gray-900">{customer.fullName}</h3>
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <Phone className="w-3 h-3" />
-                      {customer.phone}
+                      {customer.phoneNumber}
                     </div>
                   </div>
                 </div>
-                {customer.totalCredit >= customer.creditLimit * 0.8 && (
-                  <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-bold">
-                    Near Limit
-                  </span>
-                )}
               </div>
 
-              <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="grid grid-cols-1 gap-4 mb-4">
                 <div className="bg-red-50 rounded-lg p-3">
                   <p className="text-xs text-gray-600 mb-1">Outstanding</p>
-                  <p className="text-xl font-bold text-red-600">Rs. {customer.totalCredit.toLocaleString()}</p>
-                </div>
-                <div className="bg-gray-50 rounded-lg p-3">
-                  <p className="text-xs text-gray-600 mb-1">Credit Limit</p>
-                  <p className="text-xl font-bold text-gray-800">Rs. {customer.creditLimit.toLocaleString()}</p>
+                  <p className="text-xl font-bold text-red-600">Rs. {customer.totalDue.toLocaleString()}</p>
                 </div>
               </div>
-
-              {/* Credit Usage Bar */}
-              <div className="mb-4">
-                <div className="flex justify-between text-xs text-gray-600 mb-1">
-                  <span>Available: Rs. {(customer.creditLimit - customer.totalCredit).toLocaleString()}</span>
-                  <span>{((customer.totalCredit / customer.creditLimit) * 100).toFixed(0)}%</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className={`h-2 rounded-full transition-all ${
-                      customer.totalCredit >= customer.creditLimit * 0.8 ? 'bg-red-500' :
-                      customer.totalCredit >= customer.creditLimit * 0.5 ? 'bg-yellow-500' :
-                      'bg-green-500'
-                    }`}
-                    style={{ width: `${Math.min((customer.totalCredit / customer.creditLimit) * 100, 100)}%` }}
-                  />
-                </div>
+              {/* Credit limit guidance below summary */}
+              <div className="text-gray-500 text-xs italic mb-4">
+                Credit is only available per mutual agreement. Please manage responsibly.
               </div>
-
               <div className="flex gap-2">
                 <Button
                   size="sm"
@@ -193,10 +185,10 @@ const CreditLedger: React.FC = () => {
                   onClick={(e) => {
                     e.stopPropagation();
                     setSelectedCustomer(customer.id);
-                    setSettlementAmount(customer.totalCredit);
+                    setSettlementAmount(customer.totalDue);
                   }}
                   icon={<Wallet className="w-4 h-4" />}
-                  disabled={customer.totalCredit === 0}
+                  disabled={customer.totalDue === 0}
                 >
                   Settle Debt
                 </Button>
@@ -239,31 +231,31 @@ const CreditLedger: React.FC = () => {
               <div className="space-y-4">
                 <div className="text-center bg-gray-50 rounded-lg p-4">
                   <p className="text-sm text-gray-600 mb-1">Customer</p>
-                  <p className="text-xl font-bold">{customer.name}</p>
+                  <p className="text-xl font-bold">{customer.fullName}</p>
                   <p className="text-sm text-gray-600 mt-2">Outstanding Debt</p>
-                  <p className="text-3xl font-bold text-red-600">Rs. {customer.totalCredit.toLocaleString()}</p>
+                  <p className="text-3xl font-bold text-red-600">Rs. {customer.totalDue.toLocaleString()}</p>
                 </div>
 
-                <Input
+                <input
                   type="number"
-                  label="Settlement Amount"
+                  className="w-full border px-3 py-2 rounded text-lg"
+                  placeholder="Settlement Amount"
                   value={settlementAmount}
                   onChange={(e) => setSettlementAmount(Number(e.target.value))}
-                  max={customer.totalCredit}
+                  max={customer.totalDue}
                   min={1}
-                  icon={<Wallet className="w-5 h-5" />}
                 />
 
-                {settlementAmount > 0 && settlementAmount <= customer.totalCredit && (
+                {settlementAmount > 0 && settlementAmount <= customer.totalDue && (
                   <div className="bg-green-50 rounded-lg p-3">
                     <p className="text-sm text-gray-600">Remaining after payment:</p>
                     <p className="text-xl font-bold text-green-600">
-                      Rs. {(customer.totalCredit - settlementAmount).toLocaleString()}
+                      Rs. {(customer.totalDue - settlementAmount).toLocaleString()}
                     </p>
                   </div>
                 )}
 
-                {settlementAmount > customer.totalCredit && (
+                {settlementAmount > customer.totalDue && (
                   <div className="bg-red-50 rounded-lg p-3">
                     <p className="text-sm text-red-600">
                       Amount exceeds outstanding debt
@@ -278,7 +270,7 @@ const CreditLedger: React.FC = () => {
                   <Button
                     fullWidth
                     onClick={handleSettleDebt}
-                    disabled={settlementAmount <= 0 || settlementAmount > customer.totalCredit}
+                    disabled={settlementAmount <= 0 || settlementAmount > customer.totalDue}
                   >
                     Confirm Payment
                   </Button>

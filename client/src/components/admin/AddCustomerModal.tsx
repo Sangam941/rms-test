@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Phone, Mail, CreditCard, AlertCircle } from 'lucide-react';
+import { User, Phone } from 'lucide-react';
 import Modal from '../common/Modal';
 import Input from '../common/Input';
 import Button from '../common/Button';
@@ -18,13 +18,8 @@ const InputError = ({ error }: { error?: string }) =>
 export const AddCustomerModal: React.FC<AddCustomerModalProps> = ({ isOpen, onClose }) => {
   const { addCustomer } = useCreditStore();
 
-  const [formData, setFormData] = useState({
-    name: '',
-    phone: '',
-    email: '',
-    creditLimit: 5000
-  });
-
+  const [fullName, setFullName] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -32,29 +27,17 @@ export const AddCustomerModal: React.FC<AddCustomerModalProps> = ({ isOpen, onCl
     const newErrors: Record<string, string> = {};
 
     // Name validation
-    if (!formData.name.trim()) {
-      newErrors.name = 'Name is required';
-    } else if (formData.name.trim().length < 3) {
-      newErrors.name = 'Name must be at least 3 characters';
+    if (!fullName.trim()) {
+      newErrors.fullName = 'Name is required';
+    } else if (fullName.trim().length < 3) {
+      newErrors.fullName = 'Name must be at least 3 characters';
     }
 
     // Phone validation
-    if (!formData.phone.trim()) {
-      newErrors.phone = 'Phone number is required';
-    } else if (!/^[0-9]{10}$/.test(formData.phone.replace(/\s/g, ''))) {
-      newErrors.phone = 'Phone number must be 10 digits';
-    }
-
-    // Email validation (optional)
-    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Invalid email format';
-    }
-
-    // Credit limit validation
-    if (formData.creditLimit <= 0) {
-      newErrors.creditLimit = 'Credit limit must be greater than 0';
-    } else if (formData.creditLimit > 100000) {
-      newErrors.creditLimit = 'Credit limit cannot exceed Rs. 100,000';
+    if (!phoneNumber.trim()) {
+      newErrors.phoneNumber = 'Phone number is required';
+    } else if (!/^[0-9]{10}$/.test(phoneNumber.replace(/\s/g, ''))) {
+      newErrors.phoneNumber = 'Phone number must be 10 digits';
     }
 
     setErrors(newErrors);
@@ -71,12 +54,8 @@ export const AddCustomerModal: React.FC<AddCustomerModalProps> = ({ isOpen, onCl
     setIsSubmitting(true);
 
     try {
-      await addCustomer({
-        name: formData.name.trim(),
-        phone: formData.phone.replace(/\s/g, ''),
-        email: formData.email.trim() || undefined,
-        creditLimit: formData.creditLimit
-      });
+      // Directly pass fullname and phone number to API via addCustomer function
+      await addCustomer(fullName.trim(), phoneNumber.replace(/\s/g, ''));
 
       toast.success('Customer added successfully!');
       handleClose();
@@ -88,12 +67,8 @@ export const AddCustomerModal: React.FC<AddCustomerModalProps> = ({ isOpen, onCl
   };
 
   const handleClose = () => {
-    setFormData({
-      name: '',
-      phone: '',
-      email: '',
-      creditLimit: 5000
-    });
+    setFullName('');
+    setPhoneNumber('');
     setErrors({});
     onClose();
   };
@@ -111,13 +86,13 @@ export const AddCustomerModal: React.FC<AddCustomerModalProps> = ({ isOpen, onCl
           <Input
             label="Customer Name *"
             type="text"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
             placeholder="Enter full name"
             icon={<User className="w-5 h-5" />}
             required
           />
-          <InputError error={errors.name} />
+          <InputError error={errors.fullName} />
         </div>
 
         {/* Phone */}
@@ -125,57 +100,13 @@ export const AddCustomerModal: React.FC<AddCustomerModalProps> = ({ isOpen, onCl
           <Input
             label="Phone Number *"
             type="tel"
-            value={formData.phone}
-            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+            value={phoneNumber}
+            onChange={(e) => setPhoneNumber(e.target.value)}
             placeholder="9841234567"
             icon={<Phone className="w-5 h-5" />}
-            maxLength={10}
             required
           />
-          <InputError error={errors.phone} />
-        </div>
-
-        {/* Email */}
-        <div>
-          <Input
-            label="Email (Optional)"
-            type="email"
-            value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            placeholder="customer@example.com"
-            icon={<Mail className="w-5 h-5" />}
-          />
-          <InputError error={errors.email} />
-        </div>
-
-        {/* Credit Limit */}
-        <div>
-          <Input
-            label="Credit Limit (Rs.) *"
-            type="number"
-            value={formData.creditLimit}
-            onChange={(e) => setFormData({ ...formData, creditLimit: Number(e.target.value) })}
-            placeholder="5000"
-            icon={<CreditCard className="w-5 h-5" />}
-            min={1000}
-            max={100000}
-            step={500}
-            required
-          />
-          <InputError error={errors.creditLimit} />
-          <div className="mt-2 bg-blue-50 border border-blue-200 rounded-lg p-3">
-            <div className="flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-              <div className="text-xs text-blue-900">
-                <p className="font-semibold mb-1">Credit Limit Guidelines:</p>
-                <ul className="list-disc list-inside space-y-1">
-                  <li>New customers: Rs. 5,000 - 10,000</li>
-                  <li>Regular customers: Rs. 10,000 - 25,000</li>
-                  <li>VIP customers: Rs. 25,000 - 50,000</li>
-                </ul>
-              </div>
-            </div>
-          </div>
+          <InputError error={errors.phoneNumber} />
         </div>
 
         {/* Summary */}
@@ -183,16 +114,10 @@ export const AddCustomerModal: React.FC<AddCustomerModalProps> = ({ isOpen, onCl
           <h4 className="font-bold text-gray-800 mb-2">Customer Summary</h4>
           <div className="space-y-1 text-sm">
             <p className="text-gray-700">
-              <span className="font-semibold">Name:</span> {formData.name || '---'}
+              <span className="font-semibold">Name:</span> {fullName || '---'}
             </p>
             <p className="text-gray-700">
-              <span className="font-semibold">Phone:</span> {formData.phone || '---'}
-            </p>
-            <p className="text-gray-700">
-              <span className="font-semibold">Email:</span> {formData.email || 'Not provided'}
-            </p>
-            <p className="text-gray-700">
-              <span className="font-semibold">Credit Limit:</span> Rs. {formData.creditLimit.toLocaleString()}
+              <span className="font-semibold">Phone:</span> {phoneNumber || '---'}
             </p>
           </div>
         </div>

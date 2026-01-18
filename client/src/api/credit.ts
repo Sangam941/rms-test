@@ -11,34 +11,23 @@ export const addCustomer = async (fullName:string, phoneNumber:string) => {
   return response.data
 };
 
-// Update a customer
-export const updateCustomer = (
-  customerId: string,
-  updates: Partial<{
-    name: string;
-    phone: string;
-    email: string;
-    creditLimit: number;
-  }>
-) => {
-  return api.put(`/credit/customers/${customerId}`, updates);
+
+// Fetch all credit accounts (admin)
+export const fetchAllAccounts = async () => {
+  const response = await api.get("/admin/credit-accounts");
+  return response.data.data
 };
+
 
 // Delete a customer
 export const deleteCustomer = (customerId: string) => {
   return api.delete(`/credit/customers/${customerId}`);
 };
 
-// Search customers
-export const searchCustomers = (query: string) => {
-  return api.get(`/credit/customers/search`, {
-    params: { q: query }
-  });
-};
-
 // Get credit history for a customer
-export const getCreditHistory = (customerId: string) => {
-  return api.get(`/credit/customers/${customerId}/history`);
+export const getCreditHistory = async (customerId: string) => {
+  const response = await api.get(`/admin/credit-accounts/${customerId}`);
+  return response.data.data
 };
 
 // Add a credit transaction for a customer
@@ -54,11 +43,12 @@ export const addCreditTransaction = (
 };
 
 // Settle (repay) customer debt
-export const settleDebt = (
+export const settleDebt = async (
   customerId: string,
   amount: number,
   notes?: string
 ) => {
-  return api.post(`/credit/customers/${customerId}/settle`, { amount, notes });
+  const response = await api.post(`/admin/credit-accounts/${customerId}/payment`, { amount, notes });
+  return response.data
 };
 
